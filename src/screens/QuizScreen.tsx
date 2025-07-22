@@ -271,11 +271,29 @@ const QuizScreen: React.FC = () => {
       console.log('📝 Loading next question...');
       setQuizState(prev => ({ ...prev, isLoading: true }));
       
+      // Debug: Check QuestionService status
+      console.log('🔍 QuestionService debug info:');
+      if (QuestionService) {
+        try {
+          const serviceStatus = QuestionService.getServiceStatus();
+          console.log('📊 Service Status:', serviceStatus);
+          QuestionService.debugService();
+        } catch (debugError) {
+          console.log('⚠️ Error getting service debug info:', debugError);
+        }
+      } else {
+        console.log('❌ QuestionService is null/undefined');
+      }
+      
       // Get question from service
       let question: Question | null = null;
       try {
         if (QuestionService && typeof QuestionService.getRandomQuestion === 'function') {
+          console.log('🎯 Requesting question with params:', { difficulty, category });
           question = await QuestionService.getRandomQuestion(difficulty, category);
+          console.log('📋 Received question:', question ? 'SUCCESS' : 'NULL');
+        } else {
+          console.log('❌ QuestionService.getRandomQuestion not available');
         }
       } catch (questionError) {
         console.log('❌ Error getting question from service:', questionError);
@@ -283,11 +301,23 @@ const QuizScreen: React.FC = () => {
       
       if (!question) {
         console.log('⚠️ No question received, showing error');
+        console.log('🔍 Attempting to get service total question count...');
+        try {
+          const totalQuestions = QuestionService?.getTotalQuestionCount() || 0;
+          console.log('📊 Total questions in service:', totalQuestions);
+        } catch (countError) {
+          console.log('❌ Error getting question count:', countError);
+        }
         Alert.alert('Error', 'Could not load question. Please try again.');
         return;
       }
       
-      console.log('✅ Question loaded:', question.question);
+      console.log('✅ Question loaded successfully:', {
+        id: question.id,
+        question: question.question.substring(0, 50) + '...',
+        category: question.category,
+        difficulty: question.difficulty
+      });
       
       setQuizState(prev => ({
         ...prev,

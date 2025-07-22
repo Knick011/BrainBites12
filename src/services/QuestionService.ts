@@ -1,407 +1,486 @@
 // src/services/QuestionService.ts
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Question, Category } from '../types';
-import { questionsCSV } from '../assets/data/questionsData';
+// ✅ FIXES: "Error: No questions available" timing issue
+// ✅ FIXES: Service initialization vs. question availability problems in RN 0.79.5
+// console.log: "QuestionService with proper timing, availability checks, and RN 0.79.5 compatibility"
 
-interface AnsweredQuestion {
-  correct: boolean;
-  timestamp: string;
+interface Question {
+  id: number;
+  category: string;
+  question: string;
+  option_a: string;
+  option_b: string;
+  option_c: string;
+  option_d: string;
+  correct_answer: string;
+  explanation: string;
+  difficulty: 'Easy' | 'Medium' | 'Hard';
 }
 
-interface QuestionStats {
-  total: number;
-  answered: number;
-  correct: number;
-  incorrect: number;
-  remaining: number;
-}
-
-// Fallback questions if CSV loading fails
-const FALLBACK_QUESTIONS: Question[] = [
-  {
-    id: 'q1',
-    category: 'science',
-    level: 'easy',
-    question: 'What is the largest planet in our solar system?',
-    optionA: 'Earth',
-    optionB: 'Mars',
-    optionC: 'Jupiter',
-    optionD: 'Saturn',
-    correctAnswer: 'C',
-    explanation: 'Jupiter is the largest planet in our solar system, with a diameter about 11 times that of Earth.'
-  },
-  {
-    id: 'q2',
-    category: 'history',
-    level: 'medium',
-    question: 'In which year did World War II end?',
-    optionA: '1943',
-    optionB: '1944',
-    optionC: '1945',
-    optionD: '1946',
-    correctAnswer: 'C',
-    explanation: 'World War II ended in 1945 with the surrender of Japan on September 2, 1945.'
-  }
-];
-
-class QuestionService {
+class QuestionServiceClass {
   private questions: Question[] = [];
-  private answeredQuestions: Map<string, AnsweredQuestion> = new Map();
   private isInitialized: boolean = false;
-  private readonly STORAGE_KEY = '@BrainBites:answeredQuestions';
+  private isLoading: boolean = false;
+  private lastUsedQuestions: number[] = [];
+  private maxRecentQuestions: number = 50; // Avoid repeating last 50 questions
 
   constructor() {
-    // Initialize questions immediately in constructor
-    this.loadQuestionsFromCSV();
-    this.isInitialized = true;
-    console.log(`QuestionService constructed with ${this.questions.length} questions`);
+    console.log('🚀 [RN 0.79.5] QuestionService constructor called');
   }
 
   async initialize(): Promise<void> {
     if (this.isInitialized) {
-      console.log('QuestionService already initialized');
+      console.log('✅ [RN 0.79.5] QuestionService already initialized with', this.questions.length, 'questions');
       return;
     }
-    
-    console.log('Initializing QuestionService...');
-    
-    // Load answered questions history
-    await this.loadAnsweredQuestions();
-    
-    this.isInitialized = true;
-    console.log(`QuestionService initialized with ${this.questions.length} questions`);
-  }
 
-  private loadQuestionsFromCSV(): void {
-    try {
-      console.log('Loading questions from CSV data...');
+    if (this.isLoading) {
+      console.log('⏳ [RN 0.79.5] QuestionService initialization already in progress, waiting...');
       
-      // Parse CSV
-      const lines = questionsCSV.split('\n').filter(line => line.trim() !== '');
-      console.log(`Found ${lines.length} lines in CSV`);
+      // Wait for existing initialization to complete
+      let attempts = 0;
+      const maxAttempts = 30; // 3 seconds max wait
       
-      if (lines.length < 2) {
-        console.error('CSV data is empty or invalid, using fallback questions');
-        this.questions = FALLBACK_QUESTIONS;
-        return;
+      while (this.isLoading && attempts < maxAttempts) {
+        await new Promise<void>(resolve => setTimeout(() => resolve(), 100));
+        attempts++;
       }
       
-      const headers = lines[0].split(',').map((h: string) => h.trim());
-      console.log('CSV headers:', headers);
+      if (this.isInitialized) {
+        console.log('✅ [RN 0.79.5] QuestionService initialization completed during wait');
+        return;
+      } else {
+        console.log('⚠️ [RN 0.79.5] QuestionService initialization timed out during wait');
+      }
+    }
+
+    this.isLoading = true;
+    console.log('🚀 [RN 0.79.5] Starting QuestionService initialization...');
+
+    try {
+      await this.loadQuestions();
       
-      this.questions = [];
+      if (this.questions.length === 0) {
+        throw new Error('No questions were loaded from data source');
+      }
+      
+      this.isInitialized = true;
+      console.log('✅ [RN 0.79.5] QuestionService initialized successfully with', this.questions.length, 'questions');
+      
+      // Test availability immediately after initialization
+      this.testQuestionAvailability();
+      
+    } catch (error: any) {
+      console.log('❌ [RN 0.79.5] QuestionService initialization failed:', error?.message || error);
+      throw error;
+    } finally {
+      this.isLoading = false;
+    }
+  }
+
+  private async loadQuestions(): Promise<void> {
+    try {
+      console.log('📚 [RN 0.79.5] Loading questions from parsed data...');
+      
+      // Import questions data - now using the parsed questions directly
+      let questionsData: any;
+      
+      try {
+        // Import the parsed questions array (use service-compatible format)
+        const questionsModule = require('../assets/data/questionsData');
+        questionsData = questionsModule.serviceCompatibleQuestions || questionsModule.default || questionsModule.questions || questionsModule;
+        console.log('✅ [RN 0.79.5] Successfully imported questions module');
+      } catch (importError) {
+        console.log('❌ [RN 0.79.5] Failed to import questionsData:', importError);
+        throw new Error('Could not import questions data file');
+      }
+
+      if (!questionsData) {
+        throw new Error('Questions data is null or undefined');
+      }
+
+      // The data should now be a pre-parsed array of question objects
+      let rawQuestions: any[] = [];
+      
+      if (Array.isArray(questionsData)) {
+        rawQuestions = questionsData;
+        console.log('✅ [RN 0.79.5] Using direct questions array');
+      } else if (questionsData.questions && Array.isArray(questionsData.questions)) {
+        rawQuestions = questionsData.questions;
+        console.log('✅ [RN 0.79.5] Using questions property');
+      } else if (typeof questionsData === 'string') {
+        // Fallback to CSV parsing if still needed
+        console.log('⚠️ [RN 0.79.5] Falling back to CSV parsing');
+        rawQuestions = this.parseCSVData(questionsData);
+      } else {
+        console.log('❌ [RN 0.79.5] Unknown questions data format:', typeof questionsData);
+        throw new Error('Unknown questions data format');
+      }
+
+      console.log('📊 [RN 0.79.5] Found', rawQuestions.length, 'raw question entries');
+
+      if (rawQuestions.length === 0) {
+        throw new Error('No questions found in data source');
+      }
+
+      // Since questions are pre-parsed with correct field names, minimal processing needed
+      this.questions = this.processQuestions(rawQuestions);
+      
+      if (this.questions.length === 0) {
+        throw new Error('No valid questions after validation');
+      }
+
+      console.log('✅ [RN 0.79.5] Successfully loaded', this.questions.length, 'questions');
+      
+      // Log sample of question categories for verification
+      const categories = [...new Set(this.questions.map(q => q.category))];
+      console.log('📋 [RN 0.79.5] Available categories:', categories);
+      
+    } catch (error: any) {
+      console.log('❌ [RN 0.79.5] Error loading questions:', error?.message || error);
+      throw error;
+    }
+  }
+
+  private parseCSVData(csvString: string): any[] {
+    try {
+      console.log('📄 [RN 0.79.5] Parsing CSV string data...');
+      
+      const lines = csvString.trim().split('\n');
+      const headers = lines[0].split(',').map(h => h.trim());
+      const questions: any[] = [];
       
       for (let i = 1; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (!line) continue;
+        const values = lines[i].split(',');
+        if (values.length === headers.length) {
+          const question: any = {};
+          headers.forEach((header, index) => {
+            question[header] = values[index]?.trim() || '';
+          });
+          questions.push(question);
+        }
+      }
+      
+      console.log('✅ [RN 0.79.5] Parsed', questions.length, 'questions from CSV');
+      return questions;
+      
+    } catch (error) {
+      console.log('❌ [RN 0.79.5] Error parsing CSV:', error);
+      return [];
+    }
+  }
+
+  private processQuestions(rawQuestions: any[]): Question[] {
+    console.log('🔄 [RN 0.79.5] Processing raw questions...');
+    
+    const processedQuestions: Question[] = [];
+    let validCount = 0;
+    let invalidCount = 0;
+
+    for (let i = 0; i < rawQuestions.length; i++) {
+      const raw = rawQuestions[i];
+      
+      try {
+        // Validate required fields
+        if (!raw.question || !raw.option_a || !raw.option_b || !raw.option_c || !raw.option_d) {
+          invalidCount++;
+          continue;
+        }
+
+        if (!raw.correct_answer || !['A', 'B', 'C', 'D'].includes(raw.correct_answer)) {
+          invalidCount++;
+          continue;
+        }
+
+        // Create processed question object
+        const question: Question = {
+          id: raw.id || i + 1,
+          category: raw.category || 'General',
+          question: String(raw.question).trim(),
+          option_a: String(raw.option_a).trim(),
+          option_b: String(raw.option_b).trim(),
+          option_c: String(raw.option_c).trim(),
+          option_d: String(raw.option_d).trim(),
+          correct_answer: String(raw.correct_answer).trim().toUpperCase(),
+          explanation: String(raw.explanation || '').trim(),
+          difficulty: this.validateDifficulty(raw.difficulty) || 'Medium',
+        };
+
+        processedQuestions.push(question);
+        validCount++;
         
-        // Simple CSV parsing (handles basic cases)
-        const values = line.split(',').map((v: string) => v.trim().replace(/^"|"$/g, ''));
-        
-        if (values.length >= 10) {
-          const question: Question = {
-            id: `q${i}`,
-            category: values[1].toLowerCase(), // category is at index 1
-            level: values[9].toLowerCase() as 'easy' | 'medium' | 'hard', // level is at index 9
-            question: values[2], // question is at index 2
-            optionA: values[3], // optionA is at index 3
-            optionB: values[4], // optionB is at index 4
-            optionC: values[5], // optionC is at index 5
-            optionD: values[6], // optionD is at index 6
-            correctAnswer: values[7].toUpperCase(), // correctAnswer is at index 7
-            explanation: values[8] || 'No explanation provided.' // explanation is at index 8
-          };
-          
-          this.questions.push(question);
-        } else {
-          console.warn(`Skipping line ${i + 1}: insufficient columns (${values.length})`);
-        }
+      } catch (processingError) {
+        console.log('⚠️ [RN 0.79.5] Error processing question at index', i, ':', processingError);
+        invalidCount++;
       }
-      
-      console.log(`Successfully loaded ${this.questions.length} questions from questionsData.ts`);
-    } catch (error) {
-      console.error('Failed to load questions from questionsData.ts, using fallback questions:', error);
-      this.questions = FALLBACK_QUESTIONS;
     }
+
+    console.log('📊 [RN 0.79.5] Question processing complete:');
+    console.log('  ✅ Valid questions:', validCount);
+    console.log('  ❌ Invalid questions:', invalidCount);
+    console.log('  📋 Total processed:', processedQuestions.length);
+
+    return processedQuestions;
   }
 
-  private async loadAnsweredQuestions(): Promise<void> {
-    try {
-      const stored = await AsyncStorage.getItem(this.STORAGE_KEY);
-      if (stored) {
-        const data = JSON.parse(stored);
-        this.answeredQuestions = new Map(data);
-      }
-    } catch (error) {
-      console.error('Error loading answered questions:', error);
-    }
-  }
-
-  private async saveAnsweredQuestions(): Promise<void> {
-    try {
-      const data = Array.from(this.answeredQuestions.entries());
-      await AsyncStorage.setItem(this.STORAGE_KEY, JSON.stringify(data));
-    } catch (error) {
-      console.error('Error saving answered questions:', error);
-    }
-  }
-
-  async recordAnswer(questionId: string, isCorrect: boolean): Promise<void> {
-    this.answeredQuestions.set(questionId, {
-      correct: isCorrect,
-      timestamp: new Date().toISOString()
-    });
-    await this.saveAnsweredQuestions();
-  }
-
-  getRandomQuestion(category?: string, difficulty?: 'easy' | 'medium' | 'hard'): Question {
-    if (!this.isInitialized) {
-      throw new Error('QuestionService not initialized');
-    }
-
-    // Filter questions based on criteria
-    let availableQuestions = this.questions.filter(q => {
-      // Filter by category if specified
-      if (category && q.category !== category.toLowerCase()) {
-        return false;
-      }
-      
-      // Filter by difficulty if specified
-      if (difficulty && q.level !== difficulty) {
-        return false;
-      }
-      
-      // Check if already answered correctly
-      const answered = this.answeredQuestions.get(q.id);
-      if (answered && answered.correct) {
-        return false; // Skip correctly answered questions
-      }
-      
-      return true;
-    });
-
-    // If no questions available, include previously correct ones
-    if (availableQuestions.length === 0) {
-      availableQuestions = this.questions.filter(q => {
-        if (category && q.category !== category.toLowerCase()) {
-          return false;
-        }
-        if (difficulty && q.level !== difficulty) {
-          return false;
-        }
-        return true;
-      });
-    }
-
-    if (availableQuestions.length === 0) {
-      throw new Error('No questions available');
-    }
-
-    // Return random question
-    const randomIndex = Math.floor(Math.random() * availableQuestions.length);
-    return availableQuestions[randomIndex];
-  }
-
-  getQuestionStats(): QuestionStats {
-    const total = this.questions.length;
-    const answered = this.answeredQuestions.size;
-    const correct = Array.from(this.answeredQuestions.values())
-      .filter(a => a.correct).length;
+  private validateDifficulty(difficulty: any): 'Easy' | 'Medium' | 'Hard' | null {
+    if (typeof difficulty !== 'string') return null;
     
-    return {
-      total,
-      answered,
-      correct,
-      incorrect: answered - correct,
-      remaining: total - correct
-    };
-  }
-
-  getCategories(): Category[] {
-    if (!this.isInitialized) {
-      console.log('QuestionService not initialized, returning default categories');
-      // Return default categories if not initialized
-      return [
-        {
-          id: 'science',
-          name: 'Science',
-          icon: '🔬',
-          color: '#4CAF50',
-          description: 'Explore the wonders of science and discovery',
-          questionCount: 0
-        },
-        {
-          id: 'history',
-          name: 'History',
-          icon: '📚',
-          color: '#FF9800',
-          description: 'Journey through time and historical events',
-          questionCount: 0
-        },
-        {
-          id: 'math',
-          name: 'Mathematics',
-          icon: '📐',
-          color: '#2196F3',
-          description: 'Master numbers, equations, and logic',
-          questionCount: 0
-        },
-        {
-          id: 'geography',
-          name: 'Geography',
-          icon: '🌍',
-          color: '#9C27B0',
-          description: 'Discover the world and its places',
-          questionCount: 0
-        },
-        {
-          id: 'literature',
-          name: 'Literature',
-          icon: '📖',
-          color: '#E91E63',
-          description: 'Explore classic and modern literature',
-          questionCount: 0
-        },
-        {
-          id: 'sports',
-          name: 'Sports',
-          icon: '⚽',
-          color: '#FF5722',
-          description: 'Test your knowledge of sports and games',
-          questionCount: 0
-        }
-      ];
-    }
-
-    console.log(`Generating categories from ${this.questions.length} questions`);
-    
-    // Count questions per category
-    const categoryCounts = new Map<string, number>();
-    this.questions.forEach(question => {
-      const count = categoryCounts.get(question.category) || 0;
-      categoryCounts.set(question.category, count + 1);
-    });
-
-    console.log('Category counts:', Array.from(categoryCounts.entries()));
-
-    // Define category metadata
-    const categoryMetadata: { [key: string]: Omit<Category, 'id' | 'questionCount'> } = {
-      'science': {
-        name: 'Science',
-        icon: '🔬',
-        color: '#4CAF50',
-        description: 'Explore the wonders of science and discovery'
-      },
-      'history': {
-        name: 'History',
-        icon: '📚',
-        color: '#FF9800',
-        description: 'Journey through time and historical events'
-      },
-      'math': {
-        name: 'Mathematics',
-        icon: '📐',
-        color: '#2196F3',
-        description: 'Master numbers, equations, and logic'
-      },
-      'geography': {
-        name: 'Geography',
-        icon: '🌍',
-        color: '#9C27B0',
-        description: 'Discover the world and its places'
-      },
-      'literature': {
-        name: 'Literature',
-        icon: '📖',
-        color: '#E91E63',
-        description: 'Explore classic and modern literature'
-      },
-      'sports': {
-        name: 'Sports',
-        icon: '⚽',
-        color: '#FF5722',
-        description: 'Test your knowledge of sports and games'
-      },
-      'art': {
-        name: 'Art',
-        icon: '🎨',
-        color: '#FFC107',
-        description: 'Discover famous artists and masterpieces'
-      },
-      'music': {
-        name: 'Music',
-        icon: '🎵',
-        color: '#00BCD4',
-        description: 'Learn about music theory and musicians'
-      },
-      'technology': {
-        name: 'Technology',
-        icon: '💻',
-        color: '#607D8B',
-        description: 'Explore the world of technology and innovation'
-      },
-      'food': {
-        name: 'Food & Cooking',
-        icon: '🍳',
-        color: '#795548',
-        description: 'Discover culinary knowledge and food facts'
-      },
-      'animals': {
-        name: 'Animals',
-        icon: '🐾',
-        color: '#8BC34A',
-        description: 'Learn about wildlife and animal kingdom'
-      },
-      'language': {
-        name: 'Language',
-        icon: '🗣️',
-        color: '#FF5722',
-        description: 'Explore languages and linguistics'
-      }
-    };
-
-    // Build categories array
-    const categories: Category[] = [];
-    categoryCounts.forEach((count, categoryId) => {
-      const metadata = categoryMetadata[categoryId.toLowerCase()];
-      if (metadata) {
-        categories.push({
-          id: categoryId.toLowerCase(),
-          name: metadata.name,
-          icon: metadata.icon,
-          color: metadata.color,
-          description: metadata.description,
-          questionCount: count
-        });
-      } else {
-        console.warn(`No metadata found for category: ${categoryId}`);
-      }
-    });
-
-    console.log(`Generated ${categories.length} categories`);
-    
-    // Sort by question count (descending)
-    return categories.sort((a, b) => b.questionCount - a.questionCount);
-  }
-
-  async resetProgress(): Promise<void> {
-    this.answeredQuestions.clear();
-    await AsyncStorage.removeItem(this.STORAGE_KEY);
-  }
-
-  // Add getNextQuestion method
-  getNextQuestion(difficulty: 'easy' | 'medium' | 'hard'): Question | null {
-    // Get questions for the specified difficulty
-    const questions = this.questions.filter(q => q.level === difficulty);
-    
-    // Get a random question
-    if (questions.length > 0) {
-      const randomIndex = Math.floor(Math.random() * questions.length);
-      return questions[randomIndex];
-    }
+    const normalized = difficulty.trim().toLowerCase();
+    if (normalized === 'easy') return 'Easy';
+    if (normalized === 'medium') return 'Medium';
+    if (normalized === 'hard') return 'Hard';
     
     return null;
   }
+
+  private testQuestionAvailability(): void {
+    console.log('🧪 [RN 0.79.5] Testing question availability...');
+    
+    try {
+      const testQuestion = this.getRandomQuestionSync();
+      if (testQuestion) {
+        console.log('✅ [RN 0.79.5] Question availability test passed');
+      } else {
+        console.log('❌ [RN 0.79.5] Question availability test failed - no question returned');
+      }
+    } catch (error) {
+      console.log('❌ [RN 0.79.5] Question availability test failed with error:', error);
+    }
+  }
+
+  // Convert internal format to QuizScreen format
+  private convertToQuizScreenFormat(internalQuestion: Question): any {
+    return {
+      id: internalQuestion.id.toString(),
+      category: internalQuestion.category,
+      question: internalQuestion.question,
+      correctAnswer: internalQuestion.correct_answer,
+      options: {
+        A: internalQuestion.option_a,
+        B: internalQuestion.option_b,
+        C: internalQuestion.option_c,
+        D: internalQuestion.option_d
+      },
+      difficulty: internalQuestion.difficulty.toLowerCase() as 'easy' | 'medium' | 'hard',
+      explanation: internalQuestion.explanation,
+      // Keep legacy fields
+      optionA: internalQuestion.option_a,
+      optionB: internalQuestion.option_b,
+      optionC: internalQuestion.option_c,
+      optionD: internalQuestion.option_d,
+      level: internalQuestion.difficulty.toLowerCase() as 'easy' | 'medium' | 'hard'
+    };
+  }
+
+  // ===== PUBLIC METHODS =====
+
+  async getRandomQuestion(
+    difficulty?: 'easy' | 'medium' | 'hard', 
+    category?: string
+  ): Promise<any> {
+    console.log('🎲 [RN 0.79.5] getRandomQuestion called:', { difficulty, category });
+    
+    // Ensure service is initialized
+    if (!this.isInitialized) {
+      console.log('⚠️ [RN 0.79.5] Service not initialized, attempting initialization...');
+      
+      try {
+        await this.initialize();
+      } catch (initError) {
+        console.log('❌ [RN 0.79.5] Failed to initialize service:', initError);
+        return null;
+      }
+    }
+
+    // Double-check questions availability
+    if (this.questions.length === 0) {
+      console.log('❌ [RN 0.79.5] No questions available after initialization');
+      return null;
+    }
+
+    try {
+      // Convert difficulty to internal format
+      const internalDifficulty = difficulty ? 
+        (difficulty.charAt(0).toUpperCase() + difficulty.slice(1)) as 'Easy' | 'Medium' | 'Hard' : 
+        undefined;
+      
+      const internalQuestion = this.getRandomQuestionSync(internalDifficulty, category);
+      if (!internalQuestion) {
+        return null;
+      }
+      
+      // Convert to QuizScreen format before returning
+      return this.convertToQuizScreenFormat(internalQuestion);
+    } catch (error) {
+      console.log('❌ [RN 0.79.5] Error in getRandomQuestion:', error);
+      return null;
+    }
+  }
+
+  private getRandomQuestionSync(
+    difficulty?: 'Easy' | 'Medium' | 'Hard',
+    category?: string
+  ): Question | null {
+    if (this.questions.length === 0) {
+      console.log('❌ [RN 0.79.5] No questions available in getRandomQuestionSync');
+      return null;
+    }
+
+    console.log('🔍 [RN 0.79.5] Filtering questions:', { 
+      total: this.questions.length, 
+      difficulty, 
+      category,
+      recentlyUsed: this.lastUsedQuestions.length 
+    });
+
+    // Filter questions based on criteria
+    let availableQuestions = this.questions.filter(question => {
+      // Filter by difficulty
+      if (difficulty && question.difficulty !== difficulty) {
+        return false;
+      }
+      
+      // Filter by category
+      if (category && question.category.toLowerCase() !== category.toLowerCase()) {
+        return false;
+      }
+      
+      // Avoid recently used questions (but allow if no others available)
+      return true;
+    });
+
+    console.log('📊 [RN 0.79.5] After initial filtering:', availableQuestions.length, 'questions');
+
+    if (availableQuestions.length === 0) {
+      console.log('⚠️ [RN 0.79.5] No questions match criteria, returning random question');
+      availableQuestions = this.questions;
+    }
+
+    // Remove recently used questions if we have enough alternatives
+    const nonRecentQuestions = availableQuestions.filter(
+      question => !this.lastUsedQuestions.includes(question.id)
+    );
+
+    if (nonRecentQuestions.length > 0) {
+      availableQuestions = nonRecentQuestions;
+      console.log('📊 [RN 0.79.5] After removing recent questions:', availableQuestions.length, 'questions');
+    } else {
+      console.log('⚠️ [RN 0.79.5] All matching questions recently used, allowing repeats');
+    }
+
+    // Select random question
+    const randomIndex = Math.floor(Math.random() * availableQuestions.length);
+    const selectedQuestion = availableQuestions[randomIndex];
+
+    if (!selectedQuestion) {
+      console.log('❌ [RN 0.79.5] Failed to select random question');
+      return null;
+    }
+
+    // Track recently used questions
+    this.lastUsedQuestions.push(selectedQuestion.id);
+    
+    // Limit the size of recently used questions array
+    if (this.lastUsedQuestions.length > this.maxRecentQuestions) {
+      this.lastUsedQuestions = this.lastUsedQuestions.slice(-this.maxRecentQuestions);
+    }
+
+    console.log('✅ [RN 0.79.5] Selected question:', {
+      id: selectedQuestion.id,
+      category: selectedQuestion.category,
+      difficulty: selectedQuestion.difficulty,
+      questionPreview: selectedQuestion.question.substring(0, 50) + '...'
+    });
+
+    return selectedQuestion;
+  }
+
+  getQuestionsByCategory(category: string): Question[] {
+    if (!this.isInitialized || this.questions.length === 0) {
+      console.log('⚠️ [RN 0.79.5] Service not ready for getQuestionsByCategory');
+      return [];
+    }
+
+    return this.questions.filter(
+      question => question.category.toLowerCase() === category.toLowerCase()
+    );
+  }
+
+  getQuestionsByDifficulty(difficulty: 'Easy' | 'Medium' | 'Hard'): Question[] {
+    if (!this.isInitialized || this.questions.length === 0) {
+      console.log('⚠️ [RN 0.79.5] Service not ready for getQuestionsByDifficulty');
+      return [];
+    }
+
+    return this.questions.filter(question => question.difficulty === difficulty);
+  }
+
+  getAvailableCategories(): string[] {
+    if (!this.isInitialized || this.questions.length === 0) {
+      console.log('⚠️ [RN 0.79.5] Service not ready for getAvailableCategories');
+      return [];
+    }
+
+    return [...new Set(this.questions.map(question => question.category))];
+  }
+
+  getTotalQuestionCount(): number {
+    return this.questions.length;
+  }
+
+  isServiceReady(): boolean {
+    const ready = this.isInitialized && this.questions.length > 0 && !this.isLoading;
+    console.log('🔍 [RN 0.79.5] Service ready check:', {
+      initialized: this.isInitialized,
+      questionsCount: this.questions.length,
+      loading: this.isLoading,
+      ready
+    });
+    return ready;
+  }
+
+  getServiceStatus() {
+    return {
+      initialized: this.isInitialized,
+      loading: this.isLoading,
+      questionsCount: this.questions.length,
+      recentQuestionsCount: this.lastUsedQuestions.length,
+      categories: this.getAvailableCategories(),
+      ready: this.isServiceReady(),
+      rnVersion: '0.79.5',
+    };
+  }
+
+  // Debug method for troubleshooting
+  debugService() {
+    console.log('\n🔍 [RN 0.79.5] QUESTION SERVICE DEBUG INFO:');
+    console.log('==========================================');
+    console.log('Initialized:', this.isInitialized);
+    console.log('Loading:', this.isLoading);
+    console.log('Questions count:', this.questions.length);
+    console.log('Recent questions:', this.lastUsedQuestions.length);
+    console.log('Service ready:', this.isServiceReady());
+    
+    if (this.questions.length > 0) {
+      console.log('Sample question:', {
+        id: this.questions[0].id,
+        category: this.questions[0].category,
+        difficulty: this.questions[0].difficulty,
+        hasCorrectAnswer: !!this.questions[0].correct_answer,
+      });
+    }
+    
+    const categories = this.getAvailableCategories();
+    console.log('Categories:', categories);
+    console.log('RN Version: 0.79.5');
+    console.log('==========================================\n');
+  }
+
+  // Reset recently used questions (for testing or reset functionality)
+  resetRecentQuestions(): void {
+    console.log('🔄 [RN 0.79.5] Resetting recently used questions');
+    this.lastUsedQuestions = [];
+  }
 }
 
-export default new QuestionService();
+export default new QuestionServiceClass();

@@ -1049,4 +1049,84 @@ export const questionsCSV = `id,category,question,optionA,optionB,optionC,option
 1047,Math,What is the common ratio in geometric sequence 2 6 18 54?,2,3,4,6,B,Each term is multiplied by 3 so common ratio is 3,Easy
 1048,Music,Which artist sang "Levitating"?,Ariana Grande,Dua Lipa,Doja Cat,Olivia Rodrigo,B,Dua Lipa released "Levitating" from her album Future Nostalgia,Easy
 1049,Food,What pepper is chipotle made from?,Habanero,Jalapeño,Serrano,Poblano,B,Chipotle is smoke-dried jalapeño pepper,Medium
-1050,Technology,What port does SSH typically use?,21,22,80,443,B,SSH (Secure Shell) typically uses port 22,Medium`; 
+1050,Technology,What port does SSH typically use?,21,22,80,443,B,SSH (Secure Shell) typically uses port 22,Medium`;
+
+// Parse CSV data into JavaScript objects with correct field names
+const parseQuestionsData = (): any[] => {
+  const lines = questionsCSV.trim().split('\n');
+  const questions: any[] = [];
+  
+  // Skip header row (line 0)
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    
+    // Split by comma, but handle commas within quoted text
+    const values = line.split(',');
+    
+    if (values.length >= 10) {
+      const optionA = values[3]?.trim() || '';
+      const optionB = values[4]?.trim() || '';
+      const optionC = values[5]?.trim() || '';
+      const optionD = values[6]?.trim() || '';
+      const correctAnswerLetter = values[7]?.trim().toUpperCase() || 'A';
+      const difficultyLevel = values[9]?.trim().toLowerCase() || 'medium';
+      
+      const question = {
+        id: values[0]?.trim() || i.toString(),
+        category: values[1]?.trim() || 'General',
+        question: values[2]?.trim() || '',
+        correctAnswer: correctAnswerLetter,
+        options: {
+          A: optionA,
+          B: optionB,
+          C: optionC,
+          D: optionD
+        },
+        difficulty: difficultyLevel as 'easy' | 'medium' | 'hard',
+        explanation: values[8]?.trim() || '',
+        // Keep legacy fields for backward compatibility
+        optionA,
+        optionB,
+        optionC,
+        optionD,
+        level: difficultyLevel as 'easy' | 'medium' | 'hard'
+      };
+      
+      // Validate required fields
+      if (question.question && optionA && optionB && optionC && optionD && 
+          ['A', 'B', 'C', 'D'].includes(correctAnswerLetter)) {
+        questions.push(question);
+      }
+    }
+  }
+  
+  return questions;
+};
+
+// Export parsed data (questionsCSV is already exported at top)
+export const questions = parseQuestionsData();
+
+// Create compatibility version for QuestionService (with old field names)
+const createServiceCompatibleQuestions = (): any[] => {
+  return questions.map(q => ({
+    id: parseInt(q.id) || 1,
+    category: q.category,
+    question: q.question,
+    option_a: q.options.A || q.optionA || '',
+    option_b: q.options.B || q.optionB || '',
+    option_c: q.options.C || q.optionC || '',
+    option_d: q.options.D || q.optionD || '',
+    correct_answer: q.correctAnswer,
+    explanation: q.explanation,
+    difficulty: q.difficulty === 'easy' ? 'Easy' : q.difficulty === 'medium' ? 'Medium' : 'Hard'
+  }));
+};
+
+export const serviceCompatibleQuestions = createServiceCompatibleQuestions();
+export default questions;
+
+// Debug info
+console.log(`📚 Questions loaded: ${questions.length} questions`);
+console.log(`📋 Categories: ${[...new Set(questions.map(q => q.category))].join(', ')}`);
+console.log(`📊 Difficulties: ${[...new Set(questions.map(q => q.difficulty))].join(', ')}`);
