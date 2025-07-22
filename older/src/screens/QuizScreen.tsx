@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,8 +6,8 @@ import {
   StyleSheet,
   SafeAreaView,
   Alert,
-  BackHandler,
 } from 'react-native';
+import { useBackHandler } from '../../../src/hooks/useBackHandler';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { QuestionCard } from '@components/Quiz/QuestionCard';
@@ -104,10 +104,9 @@ export const QuizScreen: React.FC<QuizScreenProps> = ({ navigation, route }) => 
     showExcitement();
     
     // Handle back button
-    const backHandler = BackHandler.addEventListener('hardwareBackPress', handleBackPress);
+    useBackHandler(handleBackPress, true);
     
     return () => {
-      backHandler.remove();
       if (timerRef.current) {
         clearInterval(timerRef.current);
       }
@@ -128,7 +127,7 @@ export const QuizScreen: React.FC<QuizScreenProps> = ({ navigation, route }) => 
     };
   }, [timeLeft, isActive]);
   
-  const handleBackPress = () => {
+  const handleBackPress = useCallback(() => {
     Alert.alert(
       'Exit Quiz',
       'Are you sure you want to exit? Your progress will be lost.',
@@ -138,7 +137,7 @@ export const QuizScreen: React.FC<QuizScreenProps> = ({ navigation, route }) => 
       ]
     );
     return true;
-  };
+  }, [navigation]);
   
   const handleSelectAnswer = (answerIndex: number) => {
     if (showResult) return;
