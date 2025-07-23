@@ -1,8 +1,4 @@
-// src/screens/QuizScreen.tsx - Modern implementation based on reference with Firebase removed
-// ✅ FIXES: Complete redesign using reference implementation
-// ✅ FIXES: Modern audio integration with react-native-track-player
-// console.log: "Modern QuizScreen with Firebase removed and updated service integrations"
-
+// src/screens/QuizScreen.js - Fixed version with original mascot functionality
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   View, 
@@ -17,22 +13,23 @@ import {
   StatusBar,
   Platform
 } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import QuestionService from '../services/QuestionService';
+import QuizService from '../services/QuizService';
+import EnhancedTimerService from '../services/EnhancedTimerService';
 import SoundService from '../services/SoundService';
-import EnhancedMascotDisplay from '../components/Mascot/EnhancedMascotDisplay';
+import EnhancedScoreService from '../services/EnhancedScoreService';
+import EnhancedMascotDisplay from '../components/mascot/EnhancedMascotDisplay';
 
-const QuizScreen = ({ navigation, route }: any) => {
-  const [currentQuestion, setCurrentQuestion] = useState<any>(null);
-  const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
-  const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
+const QuizScreen = ({ navigation, route }) => {
+  const [currentQuestion, setCurrentQuestion] = useState(null);
+  const [selectedAnswer, setSelectedAnswer] = useState(null);
+  const [isCorrect, setIsCorrect] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showExplanation, setShowExplanation] = useState(false);
   const [streak, setStreak] = useState(0);
   const [questionsAnswered, setQuestionsAnswered] = useState(0);
   const [correctAnswers, setCorrectAnswers] = useState(0);
-  const [category, setCategory] = useState(route.params?.category || 'science');
+  const [category, setCategory] = useState(route.params?.category || 'funfacts');
   const [showPointsAnimation, setShowPointsAnimation] = useState(false);
   const [pointsEarned, setPointsEarned] = useState(0);
   const [score, setScore] = useState(0);
@@ -40,38 +37,42 @@ const QuizScreen = ({ navigation, route }: any) => {
   const [isStreakMilestone, setIsStreakMilestone] = useState(false);
   
   // Mascot state - simplified for quiz functionality
-  const [mascotType, setMascotType] = useState<'happy' | 'sad' | 'excited' | 'depressed' | 'gamemode' | 'below'>('happy');
+  const [mascotType, setMascotType] = useState('happy');
   const [mascotMessage, setMascotMessage] = useState('');
   const [showMascot, setShowMascot] = useState(false);
   
   // Animation values
   const cardAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const optionsAnim = useRef<Animated.Value[]>([]).current;
+  const optionsAnim = useRef([]).current;
   const explanationAnim = useRef(new Animated.Value(0)).current;
   const streakAnim = useRef(new Animated.Value(1)).current;
   const pointsAnim = useRef(new Animated.Value(0)).current;
   
   // Timer animation
   const timerAnim = useRef(new Animated.Value(1)).current;
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const timerAnimation = useRef<Animated.CompositeAnimation | null>(null);
+  const timerRef = useRef(null);
+  const timerAnimation = useRef(null);
   
   // Store start time for scoring
   const questionStartTime = useRef(0);
   
   useEffect(() => {
-    console.log('🎮 [Modern QuizScreen] Component mounted');
+    // Start game music
+    SoundService.startGameMusic();
     
-    // Initialize audio service and start game music
-    initializeAudio();
+    // Initialize Score Service
+    EnhancedScoreService.loadSavedData().then(() => {
+      const scoreInfo = EnhancedScoreService.getScoreInfo();
+      setStreak(scoreInfo.currentStreak);
+      setScore(scoreInfo.dailyScore ?? 0);
+      setStreakLevel(scoreInfo.streakLevel);
+    });
     
     // Load first question
     loadQuestion();
     
     return () => {
-      console.log('🎮 [Modern QuizScreen] Component unmounting, cleaning up...');
-      
       // Stop game music
       SoundService.stopMusic();
       
@@ -85,21 +86,6 @@ const QuizScreen = ({ navigation, route }: any) => {
       }
     };
   }, []);
-
-  const initializeAudio = async () => {
-    try {
-      console.log('🔊 [Modern QuizScreen] Initializing audio...');
-      const audioReady = await SoundService.initialize();
-      if (audioReady) {
-        await SoundService.startGameMusic();
-        console.log('🔊 [Modern QuizScreen] Audio initialized and game music started');
-      } else {
-        console.log('⚠️ [Modern QuizScreen] Audio not available, continuing without sound');
-      }
-    } catch (error) {
-      console.log('❌ [Modern QuizScreen] Audio initialization failed:', error);
-    }
-  };
 
   // Start a new question
   const loadQuestion = async () => {
@@ -118,21 +104,7 @@ const QuizScreen = ({ navigation, route }: any) => {
     timerAnim.setValue(1);
     
     try {
-      console.log(`🎯 [Modern QuizScreen] Loading question for category: ${category}`);
-      const question = await QuestionService.getRandomQuestion(category);
-      
-      if (!question) {
-        console.error('❌ [Modern QuizScreen] No question received from service');
-        // Handle error case - maybe show error message or fallback
-        return;
-      }
-
-      console.log(`✅ [Modern QuizScreen] Loaded question:`, {
-        id: question.id,
-        category: question.category,
-        options: question.options
-      });
-
+      const question = await QuizService.getRandomQuestion(category);
       setCurrentQuestion(question);
       setQuestionsAnswered(prev => prev + 1);
       
@@ -140,8 +112,7 @@ const QuizScreen = ({ navigation, route }: any) => {
       SoundService.playButtonPress();
       
       // Create animation values for each option
-      const optionKeys = Object.keys(question.options || {});
-      optionsAnim.length = optionKeys.length;
+      optionsAnim.length = Object.keys(question.options || {}).length;
       for (let i = 0; i < optionsAnim.length; i++) {
         optionsAnim[i] = new Animated.Value(0);
       }
@@ -198,9 +169,10 @@ const QuizScreen = ({ navigation, route }: any) => {
       
       // Record start time for scoring
       questionStartTime.current = Date.now();
+      EnhancedScoreService.startQuestionTimer();
       
-    } catch (error: any) {
-      console.error('❌ [Modern QuizScreen] Error loading question:', error?.message || error);
+    } catch (error) {
+      console.error('Error loading question:', error);
     } finally {
       setIsLoading(false);
     }
@@ -210,7 +182,6 @@ const QuizScreen = ({ navigation, route }: any) => {
     // Check if already answered
     if (selectedAnswer !== null) return;
     
-    console.log('⏰ [Modern QuizScreen] Time up!');
     setSelectedAnswer('TIMEOUT');
     setIsCorrect(false);
     
@@ -220,8 +191,14 @@ const QuizScreen = ({ navigation, route }: any) => {
       showExplanationWithAnimation();
     }, 500);
     
-    // Reset streak and play incorrect sound
+    // Score the answer (incorrect)
+    EnhancedScoreService.recordAnswer(false, { 
+      startTime: questionStartTime.current, 
+      category 
+    });
     setStreak(0);
+    
+    // Play incorrect sound
     SoundService.playIncorrect();
     
     // Show mascot for timeout
@@ -234,10 +211,8 @@ const QuizScreen = ({ navigation, route }: any) => {
     setShowMascot(true);
   };
 
-  const handleAnswerSelect = (option: string) => {
+  const handleAnswerSelect = (option) => {
     if (selectedAnswer !== null) return;
-    
-    console.log(`🎯 [Modern QuizScreen] Answer selected: ${option}`);
     
     // Stop timer animation and clear timeout immediately
     if (timerAnimation.current) {
@@ -251,20 +226,20 @@ const QuizScreen = ({ navigation, route }: any) => {
     const correct = option === currentQuestion.correctAnswer;
     setIsCorrect(correct);
     
-    // Calculate basic scoring (simplified version)
-    const timeBonus = Math.max(0, 1000 - (Date.now() - questionStartTime.current));
-    const basePoints = correct ? 100 : 0;
-    const points = correct ? basePoints + Math.floor(timeBonus / 10) : 0;
+    // Score the answer
+    const scoreResult = EnhancedScoreService.recordAnswer(correct, { 
+      startTime: questionStartTime.current,
+      category: category,
+    });
     
     if (correct) {
-      // Update scoring
-      setPointsEarned(points);
+      // Update UI based on score result
+      setPointsEarned(scoreResult.pointsEarned);
       setShowPointsAnimation(true);
-      setScore(prev => prev + points);
+      setStreak(scoreResult.newStreak);
+      setScore(scoreResult.newScore);
+      setStreakLevel(scoreResult.streakLevel);
       setCorrectAnswers(prev => prev + 1);
-      
-      const newStreak = streak + 1;
-      setStreak(newStreak);
       
       // Animate points
       pointsAnim.setValue(0);
@@ -275,14 +250,16 @@ const QuizScreen = ({ navigation, route }: any) => {
       }).start();
 
       // Check for streak milestone
-      if (newStreak > 0 && newStreak % 5 === 0) {
+      if (scoreResult.isMilestone) {
         setMascotType('gamemode');
-        setMascotMessage(`🔥 ${newStreak} question streak! 🔥\nAmazing work! Keep it up!`);
+        setMascotMessage(`🔥 ${scoreResult.newStreak} question streak! 🔥\n+120 seconds bonus!`);
         setShowMascot(true);
         setIsStreakMilestone(true);
         SoundService.playStreak();
+        EnhancedTimerService.addTimeCredits(120);
       } else {
         // Regular correct answer
+        EnhancedTimerService.addTimeCredits(30);
         SoundService.playCorrect();
       }
       
@@ -307,6 +284,12 @@ const QuizScreen = ({ navigation, route }: any) => {
         showExplanationWithAnimation();
       }, 2000);
     }
+    
+    // After scoring, reload score info to update UI
+    const updatedScoreInfo = EnhancedScoreService.getScoreInfo();
+    setScore(updatedScoreInfo.dailyScore ?? 0);
+    setStreak(updatedScoreInfo.currentStreak);
+    setStreakLevel(updatedScoreInfo.streakLevel);
   };
   
   const showExplanationWithAnimation = () => {
@@ -317,14 +300,33 @@ const QuizScreen = ({ navigation, route }: any) => {
       easing: Easing.out(Easing.cubic),
     }).start();
   };
+  
+  const showMascotForStreak = (streakCount) => {
+    console.log('🔥 Showing streak celebration for:', streakCount);
+    
+    let message = '';
+    let mascotType = 'excited';
+    
+    if (streakCount >= 15) {
+      message = `🔥 LEGENDARY STREAK! ${streakCount} in a row! 🔥\n\nYou're absolutely UNSTOPPABLE! 🚀\nYou earned 2 bonus minutes!\n\nYou're a true Brain Bites master! 👑`;
+    } else if (streakCount >= 10) {
+      message = `🔥 INCREDIBLE STREAK! ${streakCount} correct! 🔥\n\nYou're on fire! Amazing work! 🌟\nYou earned 2 bonus minutes!\n\nKeep this momentum going! 💪`;
+    } else if (streakCount >= 5) {
+      message = `🎉 STREAK MILESTONE! ${streakCount} correct! 🎉\n\nFantastic job! You're doing great! ⭐\nYou earned 2 bonus minutes of app time!\n\nCan you reach ${Math.ceil(streakCount/5)*5 + 5}? 🎯`;
+    }
+    
+    setMascotType(mascotType);
+    setMascotMessage(message);
+    setShowMascot(true);
+  };
 
   const showMascotForWrongAnswer = () => {
     setMascotType('sad');
-    setMascotMessage(`Oops! That's not quite right. 😔\n\nThe correct answer was:\n${currentQuestion.correctAnswer}: ${currentQuestion.options[currentQuestion.correctAnswer]}\n\nTap for explanation!`);
+    setMascotMessage(`Oops! That's not quite right. 😔\n\nThe correct answer was:\n${currentQuestion.correctAnswer}: ${currentQuestion.options[currentQuestion.correctAnswer]}\n\nTap me for a detailed explanation!`);
     setShowMascot(true);
   };
   
-  // Handle peeking mascot press for explanations
+  // ORIGINAL QUIZ FUNCTIONALITY: Handle peeking mascot press for explanations
   const handlePeekingMascotPress = () => {
     if (!currentQuestion) return;
     
@@ -387,6 +389,18 @@ const QuizScreen = ({ navigation, route }: any) => {
     }
   };
   
+  // Get reward text
+  const getRewardText = () => {
+    if (!isCorrect) return '';
+    
+    // Different text for milestone versus regular correct answer
+    if (isStreakMilestone) {
+      return '🎉 Milestone bonus! +2 minutes of app time!';
+    } else {
+      return '+30 seconds of app time!';
+    }
+  };
+  
   // Get streak progress (0-1)
   const getStreakProgress = () => {
     if (streak === 0) return 0;
@@ -419,10 +433,6 @@ const QuizScreen = ({ navigation, route }: any) => {
             { opacity: fadeAnim }
           ]}
         >
-          <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
-            <Icon name="arrow-left" size={24} color="#333" />
-          </TouchableOpacity>
-          
           <View style={styles.statsContainer}>
             <Icon name="check-circle-outline" size={18} color="#4CAF50" />
             <Text style={styles.statsText}>{correctAnswers}/{questionsAnswered}</Text>
@@ -711,19 +721,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'white',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
   },
   statsContainer: {
     flexDirection: 'row',

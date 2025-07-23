@@ -2,7 +2,7 @@
   "name": "BrainBites",
   "version": "0.0.1",
   "private": true,
-  "description": "RN 0.79.5 compatible package.json with resolved React conflicts",
+  "description": "RN 0.79.5 compatible package.json with Firebase removed and modern audio library",
   "scripts": {
     "android": "react-native run-android",
     "ios": "react-native run-ios",
@@ -21,9 +21,6 @@
     "@react-native-community/datetimepicker": "^8.4.2",
     "@react-native-community/netinfo": "^11.4.1",
     "@react-native-community/slider": "^4.5.7",
-    "@react-native-firebase/analytics": "^18.9.0",
-    "@react-native-firebase/app": "^18.9.0",
-    "@react-native-firebase/crashlytics": "^18.9.0",
     "@react-navigation/native": "^6.1.18",
     "@react-navigation/stack": "^6.4.1",
     "react": "19.0.0",
@@ -38,7 +35,7 @@
     "react-native-permissions": "^5.4.1",
     "react-native-safe-area-context": "^5.5.2",
     "react-native-screens": "^3.37.0",
-    "react-native-sound": "^0.11.2",
+    "react-native-sound-player": "^0.14.5",
     "react-native-vector-icons": "^10.2.0",
     "zustand": "^5.0.6"
   },

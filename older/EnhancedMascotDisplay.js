@@ -1,8 +1,4 @@
-// src/components/Mascot/EnhancedMascotDisplay.tsx - Firebase removed, modern compatibility
-// ✅ FIXES: Firebase dependencies removed completely
-// ✅ FIXES: Compatibility with modernized QuizScreen and LeaderboardScreen
-// console.log: "Modern EnhancedMascotDisplay with Firebase removed and enhanced compatibility"
-
+// src/components/mascot/EnhancedMascotDisplay.js - Fixed version with original quiz functionality
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   View, 
@@ -16,41 +12,22 @@ import {
   Platform,
   TouchableOpacity
 } from 'react-native';
+import theme from '../../styles/theme';
 
 // Get screen dimensions for positioning
 const { width, height } = Dimensions.get('window');
 
 // Map mascot types to image paths
 const MASCOT_IMAGES = {
-  happy: require('../../assets/mascot/happy.png'),
-  sad: require('../../assets/mascot/sad.png'),
-  excited: require('../../assets/mascot/excited.png'),
-  depressed: require('../../assets/mascot/depressed.png'),
-  gamemode: require('../../assets/mascot/gamemode.png'),
-  below: require('../../assets/mascot/below.png'),
+  happy: require('../../assets/images/mascot/happy.png'),
+  sad: require('../../assets/images/mascot/sad.png'),
+  excited: require('../../assets/images/mascot/excited.png'),
+  depressed: require('../../assets/images/mascot/depressed.png'),
+  gamemode: require('../../assets/images/mascot/gamemode.png'),
+  below: require('../../assets/images/mascot/below.png'),
 };
 
-interface EnhancedMascotDisplayProps {
-  type?: 'happy' | 'sad' | 'excited' | 'depressed' | 'gamemode' | 'below';
-  position?: 'left' | 'right';
-  showMascot?: boolean;
-  message?: string | null;
-  autoHide?: boolean;
-  autoHideDuration?: number;
-  onDismiss?: () => void;
-  onMessageComplete?: () => void;
-  fullScreen?: boolean;
-  mascotEnabled?: boolean;
-  onPeekingPress?: () => void;
-  showExplanation?: boolean;
-  isCorrect?: boolean | null;
-  // Quiz-specific props
-  isQuizScreen?: boolean;
-  currentQuestion?: any;
-  selectedAnswer?: string | null;
-}
-
-const EnhancedMascotDisplay: React.FC<EnhancedMascotDisplayProps> = ({ 
+const EnhancedMascotDisplay = ({ 
   type = 'happy', 
   position = 'left',
   showMascot = true,
@@ -81,32 +58,25 @@ const EnhancedMascotDisplay: React.FC<EnhancedMascotDisplayProps> = ({
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
   
   // Timing controls
-  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const bounceTimer = useRef<Animated.CompositeAnimation | null>(null);
+  const hideTimer = useRef(null);
+  const bounceTimer = useRef(null);
   
   // Handle message changes with smooth transitions
   useEffect(() => {
-    console.log('🐾 [Modern EnhancedMascotDisplay] Message changed:', message ? 'has message' : 'no message');
     handleNewMessage(message);
   }, [message]);
   
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (hideTimer.current) {
-        clearTimeout(hideTimer.current);
-      }
-      if (bounceTimer.current) {
-        bounceTimer.current.stop();
-      }
+      clearTimeout(hideTimer.current);
+      clearTimeout(bounceTimer.current);
     };
   }, []);
   
-  const handleNewMessage = (newMessage: string | null) => {
+  const handleNewMessage = (newMessage) => {
     // Clear existing timers
-    if (hideTimer.current) {
-      clearTimeout(hideTimer.current);
-    }
+    clearTimeout(hideTimer.current);
     
     if (newMessage && newMessage !== displayedMessage) {
       setDisplayedMessage(newMessage);
@@ -124,8 +94,6 @@ const EnhancedMascotDisplay: React.FC<EnhancedMascotDisplayProps> = ({
   };
   
   const showMascotWithMessage = () => {
-    console.log('🐾 [Modern EnhancedMascotDisplay] Showing mascot with message');
-    
     if (fullScreen) {
       setShowOverlay(true);
     }
@@ -197,8 +165,6 @@ const EnhancedMascotDisplay: React.FC<EnhancedMascotDisplayProps> = ({
   };
   
   const hideMascot = () => {
-    console.log('🐾 [Modern EnhancedMascotDisplay] Hiding mascot');
-    
     // Stop breathing animation
     if (bounceTimer.current) {
       bounceTimer.current.stop();
@@ -254,21 +220,12 @@ const EnhancedMascotDisplay: React.FC<EnhancedMascotDisplayProps> = ({
   };
   
   const handleScreenTap = () => {
-    if (hideTimer.current) {
-      clearTimeout(hideTimer.current);
-    }
+    clearTimeout(hideTimer.current);
     hideMascot();
   };
   
   // Handle peeking mascot press - QUIZ SPECIFIC FUNCTIONALITY
   const handlePeekingMascotPress = () => {
-    console.log('🐾 [Modern EnhancedMascotDisplay] Peeking mascot pressed', {
-      isQuizScreen,
-      hasCurrentQuestion: !!currentQuestion,
-      selectedAnswer,
-      hasOnPeekingPress: !!onPeekingPress
-    });
-    
     if (isQuizScreen && currentQuestion) {
       // Quiz screen functionality - show explanation
       if (selectedAnswer && onPeekingPress) {
@@ -342,11 +299,6 @@ const EnhancedMascotDisplay: React.FC<EnhancedMascotDisplayProps> = ({
   const getMascotImage = () => {
     return MASCOT_IMAGES[type] || MASCOT_IMAGES.happy;
   };
-  
-  // Don't render if mascot disabled
-  if (!mascotEnabled) {
-    return null;
-  }
   
   // Don't render if not visible
   if (!isVisible && !showOverlay) {
@@ -491,13 +443,13 @@ const styles = StyleSheet.create({
   },
   speechBubble: {
     position: 'absolute',
-    backgroundColor: '#FFF8E7',
+    backgroundColor: theme.colors.background,
     borderRadius: 24,
     padding: 20,
     minWidth: 250,
     maxWidth: 320,
     borderWidth: 3,
-    borderColor: '#FF9F1C',
+    borderColor: theme.colors.primary,
     bottom: '25%',
     zIndex: 1002,
     ...Platform.select({
@@ -514,8 +466,8 @@ const styles = StyleSheet.create({
   },
   speechText: {
     fontSize: 18,
-    fontFamily: Platform.OS === 'ios' ? 'Avenir-Medium' : 'sans-serif-medium',
-    color: '#333',
+    fontFamily: theme.fonts.primary,
+    color: theme.colors.textDark,
     lineHeight: 26,
     textAlign: 'center',
     marginBottom: 12,
@@ -530,8 +482,8 @@ const styles = StyleSheet.create({
   },
   tapText: {
     fontSize: 12,
-    color: '#FF9F1C',
-    fontFamily: Platform.OS === 'ios' ? 'Avenir' : 'sans-serif',
+    color: theme.colors.primary,
+    fontFamily: theme.fonts.primary,
     textAlign: 'center',
     opacity: 0.8,
   },
