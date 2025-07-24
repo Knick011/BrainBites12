@@ -3,23 +3,26 @@
 // ✅ FIXES: Capybara theming and fake data generation maintained
 // console.log: "Modern LeaderboardScreen with Firebase removed and enhanced UI"
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+  FlatList,
   SafeAreaView,
   RefreshControl,
   Animated,
-  Platform
+  Platform,
+  ActivityIndicator
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import SoundService from '../services/SoundService';
+import EnhancedScoreService from '../services/EnhancedScoreService';
 
-// Funny capybara-themed player names
+// Funny capybara-themed player names - expanded for more variety!
 const FAKE_NAMES = [
   'CapyBOSSa', 'CapyBALLER', 'HappyBara', 'CapyGOATa', 'CapyBrainiac',
   'CapyCrusher', 'BaraKing', 'CapyChampion', 'RodentRoyalty', 'CapyGenius',
@@ -33,7 +36,18 @@ const FAKE_NAMES = [
   'CapyWizard', 'MagicBara', 'CapySage', 'WiseBara', 'CapyOracle',
   'BaraBarista', 'CoffeeCapy', 'SleepyBara', 'NightCapy', 'CapyDreamer',
   'ZenBara', 'ChillCapybara', 'RelaxedRodent', 'CalmCapy', 'PeacefulBara',
-  'StudyBara', 'BookishCapy', 'NerdyBara', 'CapyScholar', 'AcademicBara'
+  'StudyBara', 'BookishCapy', 'NerdyBara', 'CapyScholar', 'AcademicBara',
+  // More fun characters!
+  'CapySnacksAlot', 'LazyBara', 'CapyMunchies', 'SunbathingBara', 'CapyFloaty',
+  'WetBara', 'CapyBubbles', 'MudBathBara', 'CapySnoozer', 'TranquilBara',
+  'CapyVibes', 'ChonkyBara', 'CapyThicc', 'RoundBara', 'CapyBouncy',
+  'GentleBara', 'CapyKindness', 'SweetBara', 'CapyHugs', 'CozyBara',
+  'CapyNaps', 'DreamyBara', 'CapyCloud9', 'FluffyBara', 'CapySoft',
+  'WisdomBara', 'CapyMentor', 'SeniorBara', 'CapyElder', 'VeteranBara',
+  'CapyNewbie', 'FreshBara', 'YoungCapy', 'BabyBara', 'TinyCapy',
+  'GigaBara', 'MegaCapy', 'UltraBara', 'SuperCapy', 'HyperBara',
+  'CapySpeed', 'TurboBara', 'RocketCapy', 'JetBara', 'CapyZoom',
+  'QuietBara', 'CapyWhisper', 'SilentBara', 'CapyMute', 'StealthBara'
 ];
 
 // Calculate score for hours of play
@@ -42,10 +56,23 @@ const FAKE_NAMES = [
 // With streaks and bonuses, could be ~200,000-300,000 points
 const TOP_PLAYER_DAILY_SCORE = 120000;
 
-// Generate top 10 ultra-competitive scores
+// Shuffle array to get random capybara names
+const shuffleArray = (array: any[]) => {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+};
+
+// Generate top 10 ultra-competitive scores with varied characters
 const generateTop10DailyScores = () => {
   const scores = [];
   let currentScore = TOP_PLAYER_DAILY_SCORE;
+  
+  // Shuffle names to get variety each time
+  const shuffledNames = shuffleArray(FAKE_NAMES);
   
   // Top 10 players have very high scores, close competition
   for (let i = 0; i < 10; i++) {
@@ -55,9 +82,9 @@ const generateTop10DailyScores = () => {
     scores.push({
       id: `top_${i}`,
       rank: i + 1,
-      displayName: FAKE_NAMES[i],
+      displayName: shuffledNames[i],
       score: currentScore,
-      highestStreak: Math.floor(Math.random() * 20) + 10, // 10-30 streak
+      highestStreak: Math.floor(Math.random() * 25) + 5, // 5-30 streak for more variety
       isCurrentUser: false,
       lastActive: i < 3 ? 'Online now' : `${Math.floor(Math.random() * 59) + 1}m ago`,
     });
@@ -68,6 +95,11 @@ const generateTop10DailyScores = () => {
 
 // Calculate user's actual rank based on score
 const calculateUserRank = (userScore: number) => {
+  // Handle case where user has 0 score
+  if (userScore === 0) {
+    return Math.floor(Math.random() * 1000) + 5000; // Random rank between 5000-6000
+  }
+  
   // Rough calculation: every 100 points difference = ~3 ranks
   // This creates a realistic distribution
   const scoreDifference = TOP_PLAYER_DAILY_SCORE - userScore;
@@ -79,24 +111,34 @@ const calculateUserRank = (userScore: number) => {
   return Math.max(11, estimatedRank + variance);
 };
 
-// Generate players around user's rank
+// Generate players around user's rank with more variety
 const generateAroundUserScores = (userScore: number, userRank: number) => {
   const scores = [];
-  // Generate 2 players above and 2 below the user
-  for (let i = -2; i <= 2; i++) {
+  // Get a fresh shuffle of names for variety
+  const shuffledNames = shuffleArray(FAKE_NAMES);
+  
+  // Generate 3 players above and 3 below the user for more context
+  for (let i = -3; i <= 3; i++) {
     if (i === 0) continue; // Skip user's position
     let rank = userRank + i;
     if (isNaN(rank)) rank = 1000 + i; // fallback for NaN
-    const scoreDiff = i * (50 + Math.random() * 50); // 50-100 points difference per rank
-    const score = Math.max(100, Math.floor(userScore - scoreDiff));
+    
+    // More varied score differences
+    const scoreDiff = i * (30 + Math.random() * 70); // 30-100 points difference per rank
+    const score = Math.max(50, Math.floor(userScore - scoreDiff));
+    
+    // Use different names from the shuffled array
+    const nameIndex = Math.abs(rank + i * 7) % FAKE_NAMES.length;
+    
     scores.push({
       id: `around_${rank}_${i}`, // ensure unique key
       rank: rank,
-      displayName: FAKE_NAMES[(rank + 10) % FAKE_NAMES.length],
+      displayName: shuffledNames[nameIndex],
       score: score,
-      highestStreak: Math.floor(Math.random() * 40) + 10,
+      highestStreak: Math.floor(Math.random() * 35) + 3, // 3-38 streak for variety
       isCurrentUser: false,
-      lastActive: `${Math.floor(Math.random() * 23) + 1}h ago`,
+      lastActive: Math.random() > 0.3 ? `${Math.floor(Math.random() * 23) + 1}h ago` : 
+                  Math.random() > 0.5 ? `${Math.floor(Math.random() * 59) + 1}m ago` : 'Online now',
     });
   }
   return scores;
@@ -120,6 +162,7 @@ const LeaderboardScreen = () => {
   const [userRank, setUserRank] = useState<number | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [currentUserDailyScore, setCurrentUserDailyScore] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
   
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -164,21 +207,42 @@ const LeaderboardScreen = () => {
   useEffect(() => {
     loadLeaderboardData();
   }, [activeTab, currentUserDailyScore]);
+
+  // Also load leaderboard data when not loading anymore
+  useEffect(() => {
+    if (!isLoading) {
+      loadLeaderboardData();
+    }
+  }, [isLoading]);
+
+  // Refresh leaderboard when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      console.log('🏆 [Modern LeaderboardScreen] Screen focused, refreshing data');
+      loadUserScore();
+    }, [])
+  );
   
   const loadUserScore = async () => {
     try {
-      // In a real app, this would load from your scoring service
-      // For now, we'll use a mock score
-      const mockUserScore = Math.floor(Math.random() * 50000) + 10000; // 10k-60k range
-      setCurrentUserDailyScore(mockUserScore);
-      console.log('📊 [Modern LeaderboardScreen] Loaded user score:', mockUserScore);
+      setIsLoading(true);
+      // Load real user score from EnhancedScoreService
+      await EnhancedScoreService.loadSavedData();
+      const scoreInfo = EnhancedScoreService.getScoreInfo();
+      const userScore = scoreInfo.dailyScore;
+      
+      setCurrentUserDailyScore(userScore);
+      console.log('📊 [Modern LeaderboardScreen] Loaded real user score:', userScore);
     } catch (error) {
       console.error('❌ [Modern LeaderboardScreen] Error loading user score:', error);
-      setCurrentUserDailyScore(25000); // Fallback score
+      setCurrentUserDailyScore(0); // Fallback score
+    } finally {
+      setIsLoading(false);
     }
   };
   
-  const loadLeaderboardData = () => {
+  const loadLeaderboardData = useCallback(() => {
+    console.log('🏆 [LeaderboardScreen] Loading leaderboard data for tab:', activeTab, 'with score:', currentUserDailyScore);
     let fakeData: LeaderboardEntry[] = [];
     let userPosition = 0;
     
@@ -187,69 +251,82 @@ const LeaderboardScreen = () => {
         const top10 = generateTop10DailyScores();
         const userRank = calculateUserRank(currentUserDailyScore);
         setUserRank(userRank);
-        if (currentUserDailyScore > top10[9].score) {
-          const insertIndex = top10.findIndex(p => p.score < currentUserDailyScore);
-          const userData = {
-            id: 'current_user',
-            rank: insertIndex + 1,
-            displayName: 'CaBBybara',
-            score: currentUserDailyScore,
-            highestStreak: Math.floor(Math.random() * 30) + 5,
-            isCurrentUser: true,
-            lastActive: 'Online now',
-          };
-          top10.splice(insertIndex, 0, userData);
-          top10.pop();
-          top10.forEach((player, index) => {
-            player.rank = index + 1;
-          });
-          fakeData = top10;
-        } else {
-          fakeData = [...top10];
-        }
-        fakeData.push({ id: 'separator', isSeparator: true } as LeaderboardEntry);
-        const aroundUser = generateAroundUserScores(currentUserDailyScore, userRank);
-        fakeData = fakeData.concat(aroundUser);
+        
+        // Create user data object with real streak data
+        const scoreInfo = EnhancedScoreService.getScoreInfo();
         const userData = {
           id: 'current_user',
           rank: userRank,
           displayName: 'CaBBybara',
           score: currentUserDailyScore,
-          highestStreak: Math.floor(Math.random() * 30) + 5,
+          highestStreak: scoreInfo.highestStreak,
           isCurrentUser: true,
           lastActive: 'Online now',
         };
-        const insertIndex = fakeData.findIndex(p => !p.isSeparator && p.rank > userRank);
-        if (insertIndex !== -1) {
-          fakeData.splice(insertIndex, 0, userData);
+        
+        if (currentUserDailyScore > top10[9].score) {
+          // User is in top 10
+          const insertIndex = top10.findIndex(p => p.score < currentUserDailyScore);
+          userData.rank = insertIndex + 1;
+          top10.splice(insertIndex, 0, userData);
+          top10.pop(); // Remove the last item to keep top 10
+          
+          // Update ranks for all players
+          top10.forEach((player, index) => {
+            player.rank = index + 1;
+          });
+          
+          fakeData = top10;
         } else {
-          fakeData.push(userData);
+          // User is not in top 10, show top 10 + separator + user area
+          fakeData = [...top10];
+          fakeData.push({ id: 'separator', isSeparator: true } as LeaderboardEntry);
+          
+          const aroundUser = generateAroundUserScores(currentUserDailyScore, userRank);
+          fakeData = fakeData.concat(aroundUser);
+          
+          // Insert user in the correct position among nearby players
+          const insertIndex = fakeData.findIndex(p => !p.isSeparator && p.rank > userRank);
+          if (insertIndex !== -1) {
+            fakeData.splice(insertIndex, 0, userData);
+          } else {
+            fakeData.push(userData);
+          }
         }
         break;
       }
       case 'friends': {
+        // Mix of friend-themed names and regular capybara names for variety
         const friendNames = [
           'BestBaraBuddy', 'StudyCapy', 'CoffeeBara', 'GymCapybara', 'RoommateBara',
           'WorkCapy', 'OldBaraFriend', 'NewCapyPal', 'CoolCapyCousin', 'SisterBara'
         ];
-        const friendScores = friendNames.map((name, i) => {
-          const variance = (Math.random() - 0.5) * currentUserDailyScore * 0.4;
+        
+        // Add some regular capybara names to friends list for more variety
+        const shuffledCapyNames = shuffleArray(FAKE_NAMES).slice(0, 8);
+        const allFriendNames = [...friendNames, ...shuffledCapyNames];
+        
+        const friendScores = allFriendNames.map((name, i) => {
+          const variance = (Math.random() - 0.5) * currentUserDailyScore * 0.6; // More score variation
           return {
             id: `friend_${i}`,
             rank: 0,
             displayName: name,
-            score: Math.max(100, Math.floor(currentUserDailyScore + variance)),
-            highestStreak: Math.floor(Math.random() * 20) + 10,
+            score: Math.max(50, Math.floor(currentUserDailyScore + variance)),
+            highestStreak: Math.floor(Math.random() * 30) + 2, // 2-32 streak variety
             isCurrentUser: false,
-            lastActive: i < 3 ? 'Online now' : `${Math.floor(Math.random() * 23) + 1}h ago`,
+            lastActive: i < 4 ? 'Online now' : 
+                       i < 8 ? `${Math.floor(Math.random() * 59) + 1}m ago` :
+                       `${Math.floor(Math.random() * 23) + 1}h ago`,
           };
         });
+        const scoreInfo = EnhancedScoreService.getScoreInfo();
         friendScores.push({
           id: 'current_user',
           rank: 0,
           displayName: 'CaBBybara',
           score: currentUserDailyScore,
-          highestStreak: Math.floor(Math.random() * 30) + 5,
+          highestStreak: scoreInfo.highestStreak,
           isCurrentUser: true,
           lastActive: 'Online now',
         });
@@ -263,17 +340,21 @@ const LeaderboardScreen = () => {
         break;
       }
     }
+    console.log('🏆 [LeaderboardScreen] Generated leaderboard data:', fakeData.length, 'items');
     setLeaderboardData(fakeData);
-  };
+  }, [activeTab, currentUserDailyScore]);
   
   const handleRefresh = async () => {
     setIsRefreshing(true);
     SoundService.playButtonPress();
     
-         // Simulate network delay
-     await new Promise<void>(resolve => setTimeout(() => resolve(), 1000));
+    // Simulate network delay
+    await new Promise<void>(resolve => setTimeout(() => resolve(), 1000));
     
-    // Slightly randomize scores to show "live" updates
+    // Refresh user score first to get latest data
+    await loadUserScore();
+    
+    // Then reload leaderboard with fresh character variety
     loadLeaderboardData();
     setIsRefreshing(false);
   };
@@ -282,8 +363,21 @@ const LeaderboardScreen = () => {
     SoundService.playButtonPress();
     setActiveTab(tab);
   };
+
+  // FlatList optimization functions
+  const keyExtractor = (item: LeaderboardEntry) => item.id;
   
-  const renderLeaderboardItem = (item: LeaderboardEntry, index: number) => {
+  const getItemLayout = (_: any, index: number) => ({
+    length: 74, // consistent item height (includes margin)
+    offset: 74 * index,
+    index,
+  });
+
+  const renderItem = useCallback(({ item, index }: { item: LeaderboardEntry; index: number }) => {
+    return renderLeaderboardItem({ item, index });
+  }, [fadeAnim, slideAnim, pulseAnim, activeTab]);
+  
+  const renderLeaderboardItem = ({ item, index }: { item: LeaderboardEntry; index: number }) => {
     if (item.isSeparator) {
       return (
         <View key={item.id} style={styles.separator}>
@@ -362,13 +456,13 @@ const LeaderboardScreen = () => {
     );
   };
   
-  const renderUserCard = () => {
+  const renderUserCard = useCallback(() => {
     if (!userRank) return null;
     
-    const totalPlayers = activeTab === 'friends' ? 11 : '47.3K';
+    const totalPlayers = activeTab === 'friends' ? 19 : '47.3K'; // Updated for more friends
     
     const percentile = activeTab === 'friends' ? 
-      Math.round(((11 - userRank) / 10) * 100) :
+      Math.round(((19 - userRank) / 18) * 100) :
       Math.round(((1 - (userRank / 47300)) * 100));
     
     return (
@@ -397,7 +491,7 @@ const LeaderboardScreen = () => {
         </View>
       </Animated.View>
     );
-  };
+  }, [userRank, currentUserDailyScore, activeTab, fadeAnim, pulseAnim]);
   
   return (
     <SafeAreaView style={styles.container}>
@@ -441,31 +535,55 @@ const LeaderboardScreen = () => {
       {/* User's rank card */}
       {renderUserCard()}
       
-      {/* Leaderboard list */}
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={handleRefresh}
-            colors={['#FF9F1C']}
-            tintColor={'#FF9F1C'}
-          />
-        }
-      >
-        {leaderboardData.map((item, index) => renderLeaderboardItem(item, index))}
-        
-        <View style={styles.footer}>
-          <Icon name="rodent" size={20} color="#999" />
-          <Text style={styles.footerText}>
-            {'Capybara scores reset daily at midnight'}
-          </Text>
+      {/* Loading indicator */}
+      {isLoading && (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#FF9F1C" />
+          <Text style={styles.loadingText}>Loading scores...</Text>
         </View>
-      </ScrollView>
-    </SafeAreaView>
-  );
+      )}
+      
+             {/* Leaderboard list */}
+       {!isLoading && leaderboardData.length > 0 && (
+       <FlatList
+         data={leaderboardData}
+         renderItem={renderItem}
+         keyExtractor={keyExtractor}
+         style={styles.scrollView}
+         contentContainerStyle={styles.scrollContent}
+         showsVerticalScrollIndicator={false}
+         removeClippedSubviews={false}
+         refreshControl={
+           <RefreshControl
+             refreshing={isRefreshing}
+             onRefresh={handleRefresh}
+             colors={['#FF9F1C']}
+             tintColor={'#FF9F1C'}
+           />
+         }
+         ListFooterComponent={() => (
+           <View style={styles.footer}>
+             <Icon name="rodent" size={20} color="#999" />
+             <Text style={styles.footerText}>
+               {'Capybara scores reset daily at midnight'}
+             </Text>
+           </View>
+         )}
+       />
+       )}
+       
+       {/* Show message if no data */}
+       {!isLoading && leaderboardData.length === 0 && (
+         <View style={styles.emptyContainer}>
+           <Icon name="rodent" size={48} color="#ccc" />
+           <Text style={styles.emptyText}>No capybaras found!</Text>
+           <TouchableOpacity onPress={handleRefresh} style={styles.retryButton}>
+             <Text style={styles.retryButtonText}>Try Again</Text>
+           </TouchableOpacity>
+         </View>
+       )}
+      </SafeAreaView>
+    );
 };
 
 const styles = StyleSheet.create({
@@ -705,6 +823,43 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     fontFamily: Platform.OS === 'ios' ? 'Avenir' : 'sans-serif',
     marginLeft: 8,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: '#666',
+    fontFamily: Platform.OS === 'ios' ? 'Avenir' : 'sans-serif',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  emptyText: {
+    marginTop: 16,
+    fontSize: 18,
+    color: '#999',
+    fontFamily: Platform.OS === 'ios' ? 'Avenir-Medium' : 'sans-serif-medium',
+  },
+  retryButton: {
+    marginTop: 20,
+    backgroundColor: '#FF9F1C',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 20,
+  },
+  retryButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+    fontFamily: Platform.OS === 'ios' ? 'Avenir-Heavy' : 'sans-serif-medium',
   },
 });
 

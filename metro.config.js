@@ -58,11 +58,6 @@ const config = {
     alias: {
       // React Native Sound compatibility
       'react-native-sound': path.resolve(__dirname, 'node_modules/react-native-sound'),
-      
-      // Firebase compatibility
-      '@react-native-firebase/app': path.resolve(__dirname, 'node_modules/@react-native-firebase/app'),
-      '@react-native-firebase/analytics': path.resolve(__dirname, 'node_modules/@react-native-firebase/analytics'),
-      '@react-native-firebase/crashlytics': path.resolve(__dirname, 'node_modules/@react-native-firebase/crashlytics'),
     },
   },
 

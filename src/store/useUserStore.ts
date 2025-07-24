@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { logEvent } from '../config/Firebase';
 import { DailyGoal } from '../types';
 
 interface Achievement {
@@ -164,9 +163,6 @@ export const useUserStore = create<UserState>((set, get) => ({
       const newScore = state.score + points;
       const newHighScore = Math.max(newScore, state.highScore);
       
-      // Log analytics
-      logEvent('score_earned', { points, total_score: newScore });
-      
       // Check score achievements
       if (newScore >= 100 && !state.achievements.find(a => a.id === 'score_100')?.unlocked) {
         get().unlockAchievement('score_100');
@@ -199,7 +195,6 @@ export const useUserStore = create<UserState>((set, get) => ({
 
   resetStreak: () => {
     set({ streak: 0 });
-    logEvent('streak_broken', { previous_streak: get().streak });
   },
 
   updateDailyGoal: (correct) => {
@@ -246,9 +241,6 @@ export const useUserStore = create<UserState>((set, get) => ({
           ? { ...a, unlocked: true, unlockedAt: new Date().toISOString() }
           : a
       );
-      
-      // Log analytics
-      logEvent('achievement_unlocked', { achievement_id: achievementId });
       
       return { achievements };
     });
@@ -348,6 +340,5 @@ export const useUserStore = create<UserState>((set, get) => ({
       achievements: defaultAchievements,
     });
     await get().saveUserData();
-    logEvent('progress_reset');
   },
 }));

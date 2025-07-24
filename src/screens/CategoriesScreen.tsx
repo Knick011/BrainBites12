@@ -1,83 +1,75 @@
 // src/screens/CategoriesScreen.tsx
-import React, { useEffect, useRef } from 'react';
+// ✅ UPDATED: Now uses real categories from questionsData.ts with actual question counts
+// ✅ UPDATED: Modern grid layout with CategoryCard component
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   SafeAreaView,
-  ScrollView,
+  FlatList,
   Animated,
-  Platform
+  Platform,
+  ActivityIndicator
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { RootStackParamList, Category } from '../types';
+import { RootStackParamList } from '../types';
 import theme from '../styles/theme';
 import SoundService from '../services/SoundService';
+import CategoryCard from '../components/CategoryCard';
+import { getAvailableCategories, CategoryInfo, getTotalQuestionsCount } from '../utils/categoryUtils';
 
 type NavigationProp = StackNavigationProp<RootStackParamList, 'Categories'>;
 
-const CATEGORIES: Category[] = [
-  {
-    id: 'science',
-    name: 'Science',
-    icon: 'flask-outline',
-    color: '#4CAF50',
-    description: 'Physics, Chemistry, Biology',
-    questionCount: 0
-  },
-  {
-    id: 'history',
-    name: 'History', 
-    icon: 'book-clock-outline',
-    color: '#2196F3',
-    description: 'World events & civilizations',
-    questionCount: 0
-  },
-  {
-    id: 'math',
-    name: 'Math',
-    icon: 'calculator-variant-outline',
-    color: '#FF9800',
-    description: 'Numbers & calculations',
-    questionCount: 0
-  },
-  {
-    id: 'geography',
-    name: 'Geography',
-    icon: 'earth',
-    color: '#9C27B0',
-    description: 'Countries & capitals',
-    questionCount: 0
-  },
-  {
-    id: 'technology',
-    name: 'Technology',
-    icon: 'laptop',
-    color: '#00BCD4',
-    description: 'Computers & innovation',
-    questionCount: 0
-  },
-  {
-    id: 'funfacts',
-    name: 'Fun Facts',
-    icon: 'lightbulb-outline',
-    color: '#E91E63',
-    description: 'Interesting trivia',
-    questionCount: 0
-  }
-];
-
 const CategoriesScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
+  const [categories, setCategories] = useState<CategoryInfo[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [totalQuestions, setTotalQuestions] = useState(0);
   
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const cardAnims = useRef(CATEGORIES.map(() => new Animated.Value(0))).current;
+  const cardAnims = useRef<Animated.Value[]>([]);
   
   useEffect(() => {
+    loadCategories();
+  }, []);
+
+  const loadCategories = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Get categories from real data
+      const availableCategories = getAvailableCategories();
+      const totalCount = getTotalQuestionsCount();
+      
+      setCategories(availableCategories || []);
+      setTotalQuestions(totalCount || 0);
+      
+      // Initialize animation values for each category
+      cardAnims.current = (availableCategories || []).map(() => new Animated.Value(0));
+      
+      console.log('📚 [CategoriesScreen] Loaded categories:', (availableCategories || []).length);
+      
+      // Start animations only if we have categories
+      if (availableCategories && availableCategories.length > 0) {
+        startAnimations();
+      }
+      
+    } catch (error) {
+      console.error('❌ [CategoriesScreen] Error loading categories:', error);
+      // Set fallback empty state
+      setCategories([]);
+      setTotalQuestions(0);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const startAnimations = () => {
     // Animate entrance
     Animated.timing(fadeAnim, {
       toValue: 1,
@@ -86,7 +78,7 @@ const CategoriesScreen: React.FC = () => {
     }).start();
     
     // Stagger card animations
-    const animations = cardAnims.map((anim, index) => 
+    const animations = cardAnims.current.map((anim, index) => 
       Animated.timing(anim, {
         toValue: 1,
         duration: 500,
@@ -96,9 +88,9 @@ const CategoriesScreen: React.FC = () => {
     );
     
     Animated.stagger(100, animations).start();
-  }, []);
+  };
   
-  const handleCategorySelect = (category: Category) => {
+  const handleCategorySelect = (category: CategoryInfo) => {
     SoundService.playButtonPress();
     navigation.navigate('Quiz', { category: category.id });
   };
@@ -108,6 +100,26 @@ const CategoriesScreen: React.FC = () => {
     navigation.goBack();
   };
   
+  const renderCategoryCard = ({ item, index }: { item: CategoryInfo; index: number }) => (
+    <CategoryCard
+      category={item}
+      onPress={handleCategorySelect}
+      animationValue={cardAnims.current[index]}
+      delay={index * 100}
+    />
+  );
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#FF9F1C" />
+          <Text style={styles.loadingText}>Loading categories...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <Animated.View 
@@ -119,63 +131,32 @@ const CategoriesScreen: React.FC = () => {
         <TouchableOpacity onPress={handleBack} style={styles.backButton}>
           <Icon name="arrow-left" size={24} color="#333" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Choose a Category</Text>
+        <View style={styles.headerTitleContainer}>
+          <Text style={styles.headerTitle}>Choose a Category</Text>
+          <Text style={styles.headerSubtitle}>
+            {totalQuestions} total questions available
+          </Text>
+        </View>
         <View style={{ width: 40 }} />
       </Animated.View>
       
-      <ScrollView 
-        contentContainerStyle={styles.gridContainer}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.grid}>
-          {CATEGORIES.map((category, index) => (
-            <Animated.View
-              key={category.id}
-              style={[
-                styles.categoryCardContainer,
-                {
-                  opacity: cardAnims[index],
-                  transform: [
-                    {
-                      translateY: cardAnims[index].interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [30, 0],
-                      }),
-                    },
-                    {
-                      scale: cardAnims[index].interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [0.8, 1],
-                      }),
-                    },
-                  ],
-                },
-              ]}
-            >
-              <TouchableOpacity
-                style={styles.categoryCard}
-                onPress={() => handleCategorySelect(category)}
-                activeOpacity={0.8}
-              >
-                <View 
-                  style={[
-                    styles.iconContainer,
-                    { backgroundColor: category.color + '20' }
-                  ]}
-                >
-                  <Icon 
-                    name={category.icon} 
-                    size={32} 
-                    color={category.color} 
-                  />
-                </View>
-                <Text style={styles.categoryName}>{category.name}</Text>
-                <Text style={styles.categoryDescription}>{category.description}</Text>
-              </TouchableOpacity>
-            </Animated.View>
-          ))}
+      {categories.length > 0 ? (
+        <FlatList
+          data={categories}
+          renderItem={renderCategoryCard}
+          keyExtractor={(item) => item.id}
+          numColumns={2}
+          contentContainerStyle={styles.gridContainer}
+          showsVerticalScrollIndicator={false}
+          columnWrapperStyle={styles.row}
+        />
+      ) : (
+        <View style={styles.emptyContainer}>
+          <Icon name="help-circle" size={48} color="#ccc" />
+          <Text style={styles.emptyText}>No categories available</Text>
+          <Text style={styles.emptySubtext}>Please check your questions data</Text>
         </View>
-      </ScrollView>
+      )}
     </SafeAreaView>
   );
 };
@@ -203,49 +184,55 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  headerTitleContainer: {
+    alignItems: 'center',
+  },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#333',
     fontFamily: Platform.OS === 'ios' ? 'Avenir-Heavy' : 'sans-serif-medium',
   },
-  gridContainer: {
-    padding: 16,
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  categoryCardContainer: {
-    width: '48%',
-    marginBottom: 16,
-  },
-  categoryCard: {
-    backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 20,
-    alignItems: 'center',
-    ...theme.shadows.md,
-  },
-  iconContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  categoryName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 4,
-    fontFamily: Platform.OS === 'ios' ? 'Avenir-Heavy' : 'sans-serif-medium',
-  },
-  categoryDescription: {
+  headerSubtitle: {
     fontSize: 12,
     color: '#666',
+    marginTop: 2,
+    fontFamily: Platform.OS === 'ios' ? 'Avenir' : 'sans-serif',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: '#666',
+    fontFamily: Platform.OS === 'ios' ? 'Avenir' : 'sans-serif',
+  },
+  gridContainer: {
+    padding: 8,
+  },
+  row: {
+    justifyContent: 'space-around',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  emptyText: {
+    fontSize: 18,
+    color: '#666',
+    marginTop: 16,
+    textAlign: 'center',
+    fontFamily: Platform.OS === 'ios' ? 'Avenir-Medium' : 'sans-serif-medium',
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: '#999',
+    marginTop: 8,
     textAlign: 'center',
     fontFamily: Platform.OS === 'ios' ? 'Avenir' : 'sans-serif',
   },

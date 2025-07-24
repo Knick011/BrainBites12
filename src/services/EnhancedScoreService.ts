@@ -19,6 +19,9 @@ interface ScoreResult {
   newStreak: number;
   streakLevel: number;
   isMilestone: boolean;
+  speedCategory: string;
+  speedMultiplier: number;
+  baseScore: number;
 }
 
 interface AnswerMetadata {
@@ -159,6 +162,18 @@ class EnhancedScoreService {
     this.questionStartTime = Date.now();
   }
 
+  private getSpeedInfo(responseTime: number): { category: string; multiplier: number } {
+    const timeInSeconds = responseTime / 1000;
+    
+    if (timeInSeconds < 5) {
+      return { category: "Lightning Fast!", multiplier: 2.0 };
+    } else if (timeInSeconds <= 10) {
+      return { category: "Quick!", multiplier: 1.5 };
+    } else {
+      return { category: "Good!", multiplier: 1.0 };
+    }
+  }
+
   async processAnswer(
     isCorrect: boolean,
     difficulty: 'easy' | 'medium' | 'hard',
@@ -185,6 +200,10 @@ class EnhancedScoreService {
     let pointsEarned = 0;
     let isMilestone = false;
     
+    let speedCategory = "Good!";
+    let speedMultiplier = 1.0;
+    let baseScore = 0;
+    
     if (isCorrect) {
       this.correctAnswers++;
       this.todayStats.correctAnswers++;
@@ -210,13 +229,22 @@ class EnhancedScoreService {
       if (difficulty === 'medium') difficultyBonus = 25;
       if (difficulty === 'hard') difficultyBonus = 50;
       
-      pointsEarned = basePoints + timeBonus + streakBonus + difficultyBonus;
+      // Calculate base score (before speed multiplier)
+      baseScore = basePoints + timeBonus + streakBonus + difficultyBonus;
       
-      // Check for milestone
+      // Check for milestone bonus (added to base score)
       if (this.currentStreak % 5 === 0 && this.currentStreak > 0) {
         isMilestone = true;
-        pointsEarned += 200; // Milestone bonus
+        baseScore += 200; // Milestone bonus
       }
+      
+      // Get speed multiplier info
+      const speedInfo = this.getSpeedInfo(responseTime);
+      speedCategory = speedInfo.category;
+      speedMultiplier = speedInfo.multiplier;
+      
+      // Apply speed multiplier to get final points
+      pointsEarned = Math.round(baseScore * speedMultiplier);
       
       this.dailyScore += pointsEarned;
     } else {
@@ -243,7 +271,10 @@ class EnhancedScoreService {
       newScore: this.dailyScore,
       newStreak: this.currentStreak,
       streakLevel: this.streakLevel,
-      isMilestone
+      isMilestone,
+      speedCategory,
+      speedMultiplier,
+      baseScore
     };
   }
 

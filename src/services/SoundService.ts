@@ -1,6 +1,7 @@
 // src/services/SoundService.ts
 // ✅ MODERN AUDIO: Using react-native-sound-player
 // ✅ FIXES: Simple and reliable audio playback for React Native 0.79.5
+// ✅ LOOPING: Background music now loops seamlessly
 // console.log: "Modern audio service using react-native-sound-player for RN 0.79.5"
 
 import { Platform } from 'react-native';
@@ -10,6 +11,8 @@ import SoundPlayer from 'react-native-sound-player';
 let audioInitialized = false;
 let backgroundMusicPlaying = false;
 let currentMusicTrack: string | null = null;
+let musicLooping = false;
+let loopTimer: NodeJS.Timeout | null = null;
 
 // Sound effect tracking
 let soundEffectsEnabled = true;
@@ -30,14 +33,82 @@ const initializeAudio = async (): Promise<boolean> => {
   try {
     console.log('🔊 [Modern Audio] Initializing react-native-sound-player...');
     
+    // Set up event listeners for looping
+    SoundPlayer.addEventListener('onFinishedPlaying', (data) => {
+      console.log('🔊 [Modern Audio] onFinishedPlaying event triggered');
+      handleMusicFinished(data);
+    });
+    
     // Test if audio is working by trying to play a silent sound
     audioInitialized = true;
-    console.log('✅ [Modern Audio] react-native-sound-player ready');
+    console.log('✅ [Modern Audio] react-native-sound-player ready with looping support');
     return true;
 
   } catch (error: any) {
     console.log('❌ [Modern Audio] Audio initialization failed:', error?.message || error);
     return false;
+  }
+};
+
+// Handle music finishing - restart if looping is enabled
+const handleMusicFinished = (data: any) => {
+  console.log('🔊 [Modern Audio] Music finished event received:', {
+    musicLooping,
+    backgroundMusicPlaying,
+    currentMusicTrack,
+    musicEnabled,
+    data
+  });
+  
+  if (musicLooping && backgroundMusicPlaying && currentMusicTrack && musicEnabled) {
+    console.log('🔊 [Modern Audio] Music finished, restarting for loop...');
+    // Small delay to prevent immediate restart issues
+    setTimeout(() => {
+      try {
+        console.log('🔊 [Modern Audio] Attempting to restart:', currentMusicTrack);
+        SoundPlayer.playSoundFile(currentMusicTrack, 'mp3');
+        console.log('🔊 [Modern Audio] Music loop restarted successfully');
+      } catch (error) {
+        console.log('🔊 [Modern Audio] Failed to restart music loop:', error);
+        musicLooping = false;
+      }
+    }, 100);
+  } else {
+    console.log('🔊 [Modern Audio] Music finished, not looping - conditions not met');
+    backgroundMusicPlaying = false;
+  }
+};
+
+// Timer-based fallback loop mechanism
+const startLoopTimer = (trackName: string) => {
+  // Clear any existing timer
+  if (loopTimer) {
+    clearTimeout(loopTimer);
+  }
+  
+  // Set timer to restart music after estimated duration
+  // Menu music is typically 2-3 minutes, game music 1-2 minutes
+  const estimatedDuration = trackName === 'menumusic' ? 180000 : 120000; // 3 min vs 2 min
+  
+  loopTimer = setTimeout(() => {
+    if (musicLooping && backgroundMusicPlaying && currentMusicTrack === trackName && musicEnabled) {
+      console.log('🔊 [Modern Audio] Timer-based loop restart for:', trackName);
+      try {
+        SoundPlayer.playSoundFile(trackName, 'mp3');
+        // Restart the timer
+        startLoopTimer(trackName);
+      } catch (error) {
+        console.log('🔊 [Modern Audio] Timer-based loop restart failed:', error);
+        musicLooping = false;
+      }
+    }
+  }, estimatedDuration);
+};
+
+const stopLoopTimer = () => {
+  if (loopTimer) {
+    clearTimeout(loopTimer);
+    loopTimer = null;
   }
 };
 
@@ -84,6 +155,7 @@ class SoundServiceClass {
       // For sound effects, we'll use a simple approach
       // Stop any current music briefly, play sound, then resume
       const wasPlaying = backgroundMusicPlaying;
+      const wasLooping = musicLooping;
       if (wasPlaying) {
         SoundPlayer.pause();
       }
@@ -98,6 +170,8 @@ class SoundServiceClass {
         setTimeout(() => {
           try {
             this.resumeBackgroundMusic();
+            // Restore looping state
+            musicLooping = wasLooping;
           } catch (error) {
             console.log('🔊 [Modern Audio] Failed to resume background music:', error);
           }
@@ -116,6 +190,8 @@ class SoundServiceClass {
     try {
       SoundPlayer.playSoundFile(currentMusicTrack, 'mp3');
       backgroundMusicPlaying = true;
+      // Restore looping state for background music
+      musicLooping = true;
     } catch (error) {
       console.log('🔊 [Modern Audio] Failed to resume background music:', error);
     }
@@ -150,7 +226,7 @@ class SoundServiceClass {
     }
   }
 
-  // Background music methods
+  // Background music methods with looping
   async startGameMusic(): Promise<void> {
     try {
       if (!musicEnabled) {
@@ -170,8 +246,12 @@ class SoundServiceClass {
       SoundPlayer.playSoundFile('gamemusic', 'mp3');
       backgroundMusicPlaying = true;
       currentMusicTrack = 'gamemusic';
+      musicLooping = true; // Enable looping for background music
       
-      console.log('🔊 [Modern Audio] Started game music');
+      // Start timer-based fallback loop
+      startLoopTimer('gamemusic');
+      
+      console.log('🔊 [Modern Audio] Started game music with looping');
 
     } catch (error: any) {
       console.log('🔊 [Modern Audio] Failed to start game music:', error?.message || error);
@@ -194,11 +274,21 @@ class SoundServiceClass {
       // Stop any current music
       await this.stopMusic();
 
+      console.log('🔊 [Modern Audio] Starting menu music...');
       SoundPlayer.playSoundFile('menumusic', 'mp3');
       backgroundMusicPlaying = true;
       currentMusicTrack = 'menumusic';
+      musicLooping = true; // Enable looping for background music
       
-      console.log('🔊 [Modern Audio] Started menu music');
+      // Start timer-based fallback loop
+      startLoopTimer('menumusic');
+      
+      console.log('🔊 [Modern Audio] Started menu music with looping - State:', {
+        backgroundMusicPlaying,
+        currentMusicTrack,
+        musicLooping,
+        musicEnabled
+      });
 
     } catch (error: any) {
       console.log('🔊 [Modern Audio] Failed to start menu music:', error?.message || error);
@@ -210,6 +300,10 @@ class SoundServiceClass {
       SoundPlayer.stop();
       backgroundMusicPlaying = false;
       currentMusicTrack = null;
+      musicLooping = false; // Disable looping when stopping
+      
+      // Stop the loop timer
+      stopLoopTimer();
       
       console.log('🔊 [Modern Audio] Stopped music');
 
@@ -269,11 +363,18 @@ class SoundServiceClass {
   // Cleanup method
   async destroy(): Promise<void> {
     try {
+      // Remove event listeners
+      SoundPlayer.removeEventListener('onFinishedPlaying');
+      
+      // Stop the loop timer
+      stopLoopTimer();
+      
       SoundPlayer.stop();
       
       audioInitialized = false;
       backgroundMusicPlaying = false;
       currentMusicTrack = null;
+      musicLooping = false;
       
       console.log('🔊 [Modern Audio] SoundService destroyed');
 
@@ -288,6 +389,7 @@ class SoundServiceClass {
       audioInitialized,
       backgroundMusicPlaying,
       currentMusicTrack,
+      musicLooping,
       soundEffectsEnabled,
       musicEnabled,
       platform: Platform.OS,

@@ -34,11 +34,9 @@ interface ServiceStatus {
     private initializeServiceRegistry() {
       // Register all services with their dependencies
       const services: Array<{ name: string; dependencies?: string[] }> = [
-        { name: 'Firebase', dependencies: [] }, // No dependencies
         { name: 'SoundService', dependencies: [] }, // No dependencies  
-        { name: 'AnalyticsService', dependencies: ['Firebase'] }, // Depends on Firebase
         { name: 'QuestionService', dependencies: [] }, // No dependencies
-        { name: 'ScoreService', dependencies: ['AnalyticsService'] }, // Depends on Analytics
+        { name: 'ScoreService', dependencies: [] }, // No dependencies
       ];
   
       services.forEach(service => {
@@ -134,19 +132,9 @@ interface ServiceStatus {
           let available = false;
   
           switch (serviceName) {
-            case 'Firebase':
-              success = await this.initializeFirebase();
-              available = success;
-              break;
-              
             case 'SoundService':
               success = await this.initializeSoundService();
               available = this.checkSoundServiceAvailability();
-              break;
-              
-            case 'AnalyticsService':
-              success = await this.initializeAnalyticsService();
-              available = success;
               break;
               
             case 'QuestionService':
@@ -206,16 +194,6 @@ interface ServiceStatus {
   
     // ===== SERVICE INITIALIZERS =====
   
-    private async initializeFirebase(): Promise<boolean> {
-      try {
-        const { initializeFirebase } = require('../config/Firebase');
-        return await initializeFirebase();
-      } catch (error) {
-        console.log('❌ Firebase module not available:', error);
-        return false;
-      }
-    }
-  
     private async initializeSoundService(): Promise<boolean> {
       try {
         const SoundService = require('./SoundService').default;
@@ -238,20 +216,6 @@ interface ServiceStatus {
                  typeof SoundService.playCorrect === 'function' &&
                  typeof SoundService.playIncorrect === 'function');
       } catch (error) {
-        return false;
-      }
-    }
-  
-    private async initializeAnalyticsService(): Promise<boolean> {
-      try {
-        const AnalyticsService = require('./AnalyticsService').default;
-        if (AnalyticsService && typeof AnalyticsService.initialize === 'function') {
-          await AnalyticsService.initialize();
-          return true;
-        }
-        return false;
-      } catch (error) {
-        console.log('❌ AnalyticsService not available:', error);
         return false;
       }
     }
@@ -342,17 +306,6 @@ interface ServiceStatus {
     }
   
     // Safe service accessor methods
-    getSafeFirebase() {
-      if (!this.isServiceAvailable('Firebase')) return null;
-      
-      try {
-        return require('../config/Firebase');
-      } catch (error) {
-        console.log('⚠️ Error accessing Firebase:', error);
-        return null;
-      }
-    }
-  
     getSafeSoundService() {
       if (!this.isServiceAvailable('SoundService')) return null;
       
@@ -384,8 +337,6 @@ interface ServiceStatus {
       switch (serviceName) {
         case 'SoundService':
           return this.getSafeSoundService();
-        case 'Firebase':
-          return this.getSafeFirebase();
         default:
           return null;
       }

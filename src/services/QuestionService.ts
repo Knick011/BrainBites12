@@ -237,31 +237,63 @@ class QuestionServiceClass {
     });
   }
 
-  async getRandomQuestion(category: string = 'science'): Promise<Question | null> {
+  async getRandomQuestion(category?: string, difficulty?: 'Easy' | 'Medium' | 'Hard'): Promise<Question | null> {
     // Ensure service is initialized
     if (!this.isInitialized) {
       await this.initialize();
     }
 
     try {
-      // Normalize category name
-      const normalizedCategory = category.toLowerCase().trim();
+      let filteredQuestions = [...this.questions];
       
-      // Filter questions by category
-      const categoryQuestions = this.questions.filter(q => 
-        q.category.toLowerCase() === normalizedCategory
-      );
-
-      if (categoryQuestions.length === 0) {
-        console.warn(`⚠️ [Modern QuestionService] No questions found for category: ${category}`);
+      // Filter by category if provided
+      if (category) {
+        const normalizedCategory = category.toLowerCase().trim();
+        filteredQuestions = filteredQuestions.filter(q => 
+          q.category.toLowerCase() === normalizedCategory
+        );
         
-        // Fallback to any available category
-        const availableCategories = Object.keys(this.categoryCounts);
-        if (availableCategories.length > 0) {
-          const fallbackCategory = availableCategories[0];
-          console.log(`🔄 [Modern QuestionService] Falling back to category: ${fallbackCategory}`);
-          return this.getRandomQuestion(fallbackCategory);
+        if (filteredQuestions.length === 0) {
+          console.warn(`⚠️ [Modern QuestionService] No questions found for category: ${category}`);
+          
+          // Fallback to any available category
+          const availableCategories = Object.keys(this.categoryCounts);
+          if (availableCategories.length > 0) {
+            const fallbackCategory = availableCategories[0];
+            console.log(`🔄 [Modern QuestionService] Falling back to category: ${fallbackCategory}`);
+            return this.getRandomQuestion(fallbackCategory, difficulty);
+          }
+          
+          // Last resort: return first question if any exist
+          if (this.questions.length > 0) {
+            console.log(`🆘 [Modern QuestionService] Returning first available question as fallback`);
+            return this.questions[0];
+          }
+          
+          return null;
         }
+        
+        console.log(`📚 [Modern QuestionService] Found ${filteredQuestions.length} questions for category: ${category}`);
+      }
+      
+      // Filter by difficulty if provided
+      if (difficulty) {
+        const beforeDifficultyFilter = filteredQuestions.length;
+        filteredQuestions = filteredQuestions.filter(q => 
+          q.difficulty === difficulty
+        );
+        
+        console.log(`📊 [Modern QuestionService] Filtered by difficulty ${difficulty}: ${beforeDifficultyFilter} → ${filteredQuestions.length} questions`);
+        
+        // If no questions match both category and difficulty, prioritize category
+        if (filteredQuestions.length === 0 && category) {
+          console.warn(`⚠️ [Modern QuestionService] No ${difficulty} questions in ${category}, using any difficulty`);
+          return this.getRandomQuestion(category); // Retry without difficulty filter
+        }
+      }
+
+      if (filteredQuestions.length === 0) {
+        console.warn(`⚠️ [Modern QuestionService] No questions match the criteria`);
         
         // Last resort: return first question if any exist
         if (this.questions.length > 0) {
@@ -273,20 +305,20 @@ class QuestionServiceClass {
       }
 
       // Filter out recently used questions
-      const availableQuestions = categoryQuestions.filter(q => 
+      const availableQuestions = filteredQuestions.filter(q => 
         !this.usedQuestionIds.has(q.id)
       );
 
-      // If all questions in category have been used, reset the used set for this category
+      // If all questions have been used, reset the used set for this filter
       if (availableQuestions.length === 0) {
-        console.log(`🔄 [Modern QuestionService] Resetting used questions for category: ${normalizedCategory}`);
+        console.log(`🔄 [Modern QuestionService] Resetting used questions for current filter`);
         
-        // Remove used IDs for this category only
-        const categoryQuestionIds = new Set(categoryQuestions.map(q => q.id));
-        categoryQuestionIds.forEach(id => this.usedQuestionIds.delete(id));
+        // Remove used IDs for current filter only
+        const currentFilterIds = new Set(filteredQuestions.map(q => q.id));
+        currentFilterIds.forEach(id => this.usedQuestionIds.delete(id));
         
         // Retry with reset list
-        return this.getRandomQuestion(category);
+        return this.getRandomQuestion(category, difficulty);
       }
 
       // Select random question from available ones
@@ -296,8 +328,11 @@ class QuestionServiceClass {
       // Mark as used
       this.usedQuestionIds.add(selectedQuestion.id);
 
-      console.log(`✅ [Modern QuestionService] Selected question ${selectedQuestion.id} from category ${normalizedCategory}`);
-      console.log(`📊 [Modern QuestionService] Question options:`, selectedQuestion.options);
+      console.log(`✅ [Modern QuestionService] Selected question ${selectedQuestion.id}`, {
+        category: selectedQuestion.category,
+        difficulty: selectedQuestion.difficulty,
+        availableCount: availableQuestions.length
+      });
       
       return selectedQuestion;
 
@@ -328,6 +363,18 @@ class QuestionServiceClass {
     
     const normalizedCategory = category.toLowerCase().trim();
     return this.categoryCounts[normalizedCategory] || 0;
+  }
+
+  async getQuestionsByDifficulty(difficulty: 'easy' | 'medium' | 'hard'): Promise<Question | null> {
+    // Map difficulty levels to service format
+    const difficultyMap = {
+      easy: 'Easy',
+      medium: 'Medium', 
+      hard: 'Hard'
+    } as const;
+    
+    const serviceDifficulty = difficultyMap[difficulty];
+    return this.getRandomQuestion(undefined, serviceDifficulty);
   }
 
   async getTotalQuestionCount(): Promise<number> {

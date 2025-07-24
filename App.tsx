@@ -165,16 +165,10 @@ const App: React.FC = () => {
     }
   }, []);
 
-  // Setup app state listener
+  // Set up app state listener
   useEffect(() => {
-    console.log('📱 [Modern App] Setting up app state listener');
-    
     const subscription = AppState.addEventListener('change', handleAppStateChange);
-    
-    return () => {
-      console.log('📱 [Modern App] Cleaning up app state listener');
-      subscription?.remove();
-    };
+    return () => subscription?.remove();
   }, [handleAppStateChange]);
 
   // Initialize app on mount
@@ -182,59 +176,84 @@ const App: React.FC = () => {
     initializeApp();
   }, [initializeApp]);
 
-  // Show error screen if critical error
-  if (appState.criticalError) {
+  // Show loading screen during initialization
+  if (appState.isInitializing) {
     return (
       <ErrorBoundary>
-        <ErrorScreen 
-          message={appState.criticalError} 
+        <LoadingScreen 
+          services={appState.services}
           onRetry={initializeApp}
         />
       </ErrorBoundary>
     );
   }
 
-  // Show loading screen during initialization
-  if (appState.isInitializing) {
+  // Show error screen if critical services failed
+  if (appState.criticalError) {
     return (
       <ErrorBoundary>
-        <LoadingScreen />
+        <ErrorScreen 
+          error={appState.criticalError}
+          onRetry={initializeApp}
+        />
       </ErrorBoundary>
     );
   }
 
   return (
     <ErrorBoundary>
-      <StatusBar backgroundColor="#FFF8E7" barStyle="dark-content" />
       <NavigationContainer>
+        <StatusBar 
+          barStyle={Platform.OS === 'ios' ? 'dark-content' : 'light-content'}
+          backgroundColor="#FFD700"
+        />
         <Stack.Navigator
           initialRouteName="Welcome"
           screenOptions={{
-            headerShown: false,
-            gestureEnabled: true,
-            cardStyleInterpolator: ({ current, layouts }) => {
-              return {
-                cardStyle: {
-                  transform: [
-                    {
-                      translateX: current.progress.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [layouts.screen.width, 0],
-                      }),
-                    },
-                  ],
-                },
-              };
+            headerStyle: {
+              backgroundColor: '#FFD700',
+            },
+            headerTintColor: '#333',
+            headerTitleStyle: {
+              fontWeight: 'bold',
             },
           }}
         >
-          <Stack.Screen name="Welcome" component={WelcomeScreen} />
-          <Stack.Screen name="Home" component={HomeScreen} />
-          <Stack.Screen name="Categories" component={CategoriesScreen} />
-          <Stack.Screen name="Quiz" component={QuizScreen} />
-          <Stack.Screen name="Leaderboard" component={LeaderboardScreen} />
-          <Stack.Screen name="DailyGoals" component={DailyGoalsScreen} />
-          <Stack.Screen name="Settings" component={SettingsScreen} />
+          <Stack.Screen 
+            name="Welcome" 
+            component={WelcomeScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen 
+            name="Home" 
+            component={HomeScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen 
+            name="Categories" 
+            component={CategoriesScreen}
+            options={{ title: 'Categories' }}
+          />
+          <Stack.Screen 
+            name="Quiz" 
+            component={QuizScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen 
+            name="Leaderboard" 
+            component={LeaderboardScreen}
+            options={{ title: 'Leaderboard' }}
+          />
+          <Stack.Screen 
+            name="DailyGoals" 
+            component={DailyGoalsScreen}
+            options={{ title: 'Daily Goals' }}
+          />
+          <Stack.Screen 
+            name="Settings" 
+            component={SettingsScreen}
+            options={{ title: 'Settings' }}
+          />
         </Stack.Navigator>
       </NavigationContainer>
     </ErrorBoundary>

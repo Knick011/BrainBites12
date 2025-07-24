@@ -21,6 +21,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import QuestionService from '../services/QuestionService';
 import SoundService from '../services/SoundService';
+import EnhancedScoreService from '../services/EnhancedScoreService';
 import EnhancedMascotDisplay from '../components/Mascot/EnhancedMascotDisplay';
 
 const QuizScreen = ({ navigation, route }: any) => {
@@ -32,12 +33,16 @@ const QuizScreen = ({ navigation, route }: any) => {
   const [streak, setStreak] = useState(0);
   const [questionsAnswered, setQuestionsAnswered] = useState(0);
   const [correctAnswers, setCorrectAnswers] = useState(0);
-  const [category, setCategory] = useState(route.params?.category || 'science');
+  const [category, setCategory] = useState(route.params?.category);
+  const [difficulty, setDifficulty] = useState(route.params?.difficulty);
   const [showPointsAnimation, setShowPointsAnimation] = useState(false);
   const [pointsEarned, setPointsEarned] = useState(0);
   const [score, setScore] = useState(0);
   const [streakLevel, setStreakLevel] = useState(0);
   const [isStreakMilestone, setIsStreakMilestone] = useState(false);
+  const [speedCategory, setSpeedCategory] = useState('');
+  const [speedMultiplier, setSpeedMultiplier] = useState(1.0);
+  const [showSpeedFeedback, setShowSpeedFeedback] = useState(false);
   
   // Mascot state - simplified for quiz functionality
   const [mascotType, setMascotType] = useState<'happy' | 'sad' | 'excited' | 'depressed' | 'gamemode' | 'below'>('happy');
@@ -51,10 +56,11 @@ const QuizScreen = ({ navigation, route }: any) => {
   const explanationAnim = useRef(new Animated.Value(0)).current;
   const streakAnim = useRef(new Animated.Value(1)).current;
   const pointsAnim = useRef(new Animated.Value(0)).current;
+  const speedAnim = useRef(new Animated.Value(0)).current;
   
   // Timer animation
   const timerAnim = useRef(new Animated.Value(1)).current;
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const timerAnimation = useRef<Animated.CompositeAnimation | null>(null);
   
   // Store start time for scoring
@@ -63,8 +69,17 @@ const QuizScreen = ({ navigation, route }: any) => {
   useEffect(() => {
     console.log('🎮 [Modern QuizScreen] Component mounted');
     
-    // Initialize audio service and start game music
-    initializeAudio();
+    // Initialize services
+    const initializeServices = async () => {
+      try {
+        await initializeAudio();
+        await EnhancedScoreService.loadSavedData();
+      } catch (error) {
+        console.error('❌ [Modern QuizScreen] Failed to initialize services:', error);
+      }
+    };
+    
+    initializeServices();
     
     // Load first question
     loadQuestion();
@@ -110,6 +125,9 @@ const QuizScreen = ({ navigation, route }: any) => {
     setShowPointsAnimation(false);
     setIsStreakMilestone(false);
     setShowMascot(false); // Hide mascot when loading new question
+    setShowSpeedFeedback(false);
+    setSpeedCategory('');
+    setSpeedMultiplier(1.0);
     
     // Reset animations
     cardAnim.setValue(0);
@@ -118,8 +136,18 @@ const QuizScreen = ({ navigation, route }: any) => {
     timerAnim.setValue(1);
     
     try {
-      console.log(`🎯 [Modern QuizScreen] Loading question for category: ${category}`);
-      const question = await QuestionService.getRandomQuestion(category);
+      let question;
+      
+      if (category) {
+        console.log(`🎯 [Modern QuizScreen] Loading question for category: ${category}`);
+        question = await QuestionService.getRandomQuestion(category);
+      } else if (difficulty) {
+        console.log(`🎯 [Modern QuizScreen] Loading question for difficulty: ${difficulty}`);
+        question = await QuestionService.getQuestionsByDifficulty(difficulty);
+      } else {
+        console.log(`🎯 [Modern QuizScreen] Loading random question`);
+        question = await QuestionService.getRandomQuestion();
+      }
       
       if (!question) {
         console.error('❌ [Modern QuizScreen] No question received from service');
@@ -130,6 +158,7 @@ const QuizScreen = ({ navigation, route }: any) => {
       console.log(`✅ [Modern QuizScreen] Loaded question:`, {
         id: question.id,
         category: question.category,
+        difficulty: question.difficulty,
         options: question.options
       });
 
@@ -251,62 +280,89 @@ const QuizScreen = ({ navigation, route }: any) => {
     const correct = option === currentQuestion.correctAnswer;
     setIsCorrect(correct);
     
-    // Calculate basic scoring (simplified version)
-    const timeBonus = Math.max(0, 1000 - (Date.now() - questionStartTime.current));
-    const basePoints = correct ? 100 : 0;
-    const points = correct ? basePoints + Math.floor(timeBonus / 10) : 0;
-    
-    if (correct) {
-      // Update scoring
-      setPointsEarned(points);
-      setShowPointsAnimation(true);
-      setScore(prev => prev + points);
-      setCorrectAnswers(prev => prev + 1);
-      
-      const newStreak = streak + 1;
-      setStreak(newStreak);
-      
-      // Animate points
-      pointsAnim.setValue(0);
-      Animated.spring(pointsAnim, {
-        toValue: 1,
-        friction: 5,
-        useNativeDriver: true,
-      }).start();
+    // Process answer using EnhancedScoreService
+    const processScoring = async () => {
+      try {
+        const difficulty = route.params?.difficulty || 'medium';
+        const metadata = {
+          startTime: questionStartTime.current,
+          category: category,
+          difficulty: difficulty
+        };
+        
+        const scoreResult = await EnhancedScoreService.processAnswer(correct, difficulty, metadata);
+        
+        // Update UI with score results
+        setPointsEarned(scoreResult.pointsEarned);
+        setScore(scoreResult.newScore);
+        setStreak(scoreResult.newStreak);
+        setStreakLevel(scoreResult.streakLevel);
+        setIsStreakMilestone(scoreResult.isMilestone);
+        setSpeedCategory(scoreResult.speedCategory);
+        setSpeedMultiplier(scoreResult.speedMultiplier);
+        
+        if (correct) {
+          setCorrectAnswers(prev => prev + 1);
+          setShowPointsAnimation(true);
+          setShowSpeedFeedback(true);
+          
+          // Animate points and speed feedback
+          pointsAnim.setValue(0);
+          speedAnim.setValue(0);
+          
+          Animated.parallel([
+            Animated.spring(pointsAnim, {
+              toValue: 1,
+              friction: 5,
+              useNativeDriver: true,
+            }),
+            Animated.sequence([
+              Animated.delay(300),
+              Animated.spring(speedAnim, {
+                toValue: 1,
+                friction: 5,
+                useNativeDriver: true,
+              })
+            ])
+          ]).start();
 
-      // Check for streak milestone
-      if (newStreak > 0 && newStreak % 5 === 0) {
-        setMascotType('gamemode');
-        setMascotMessage(`🔥 ${newStreak} question streak! 🔥\nAmazing work! Keep it up!`);
-        setShowMascot(true);
-        setIsStreakMilestone(true);
-        SoundService.playStreak();
-      } else {
-        // Regular correct answer
-        SoundService.playCorrect();
+          // Check for streak milestone
+          if (scoreResult.isMilestone) {
+            setMascotType('gamemode');
+            setMascotMessage(`🔥 ${scoreResult.newStreak} question streak! 🔥\nAmazing work! Keep it up!`);
+            setShowMascot(true);
+            SoundService.playStreak();
+          } else {
+            // Regular correct answer
+            SoundService.playCorrect();
+          }
+          
+          // Show explanation
+          setTimeout(() => {
+            setShowExplanation(true);
+            showExplanationWithAnimation();
+          }, 1200);
+        } else {
+          // Wrong answer
+          SoundService.playIncorrect();
+          
+          // Show mascot for wrong answer
+          setTimeout(() => {
+            showMascotForWrongAnswer();
+          }, 500);
+          
+          // Show explanation
+          setTimeout(() => {
+            setShowExplanation(true);
+            showExplanationWithAnimation();
+          }, 2000);
+        }
+      } catch (error) {
+        console.error('Error processing score:', error);
       }
-      
-      // Show explanation
-      setTimeout(() => {
-        setShowExplanation(true);
-        showExplanationWithAnimation();
-      }, 1200);
-    } else {
-      // Wrong answer
-      setStreak(0);
-      SoundService.playIncorrect();
-      
-      // Show mascot for wrong answer
-      setTimeout(() => {
-        showMascotForWrongAnswer();
-      }, 500);
-      
-      // Show explanation
-      setTimeout(() => {
-        setShowExplanation(true);
-        showExplanationWithAnimation();
-      }, 2000);
-    }
+    };
+    
+    processScoring();
   };
   
   const showExplanationWithAnimation = () => {
@@ -459,16 +515,19 @@ const QuizScreen = ({ navigation, route }: any) => {
         </Animated.View>
         
         {/* Category indicator */}
-        <Animated.View 
-          style={[
-            styles.categoryContainer,
-            { opacity: fadeAnim }
-          ]}
-        >
-          <Text style={styles.categoryText}>
-            {category.charAt(0).toUpperCase() + category.slice(1)}
-          </Text>
-        </Animated.View>
+        {/* Category display - only show if category is provided */}
+        {category && (
+          <Animated.View 
+            style={[
+              styles.categoryContainer,
+              { opacity: fadeAnim }
+            ]}
+          >
+            <Text style={styles.categoryText}>
+              {category.charAt(0).toUpperCase() + category.slice(1)}
+            </Text>
+          </Animated.View>
+        )}
         
         {/* Streak progress bar */}
         {streak > 0 && (
@@ -591,7 +650,7 @@ const QuizScreen = ({ navigation, route }: any) => {
                     ]}>{key}</Text>
                   </View>
                   
-                  <Text style={styles.optionText}>{value}</Text>
+                  <Text style={styles.optionText}>{String(value)}</Text>
                   
                   {/* Result icons with enhanced visual feedback */}
                   {selectedAnswer === key && key === currentQuestion.correctAnswer && (
@@ -648,6 +707,51 @@ const QuizScreen = ({ navigation, route }: any) => {
           >
             <Icon name="star" size={20} color="#FFD700" style={styles.pointsIcon} />
             <Text style={styles.pointsText}>+{pointsEarned}</Text>
+          </Animated.View>
+        )}
+
+        {/* Speed feedback popup */}
+        {showSpeedFeedback && (
+          <Animated.View 
+            style={[
+              styles.speedFeedbackContainer,
+              {
+                opacity: speedAnim,
+                transform: [
+                  { 
+                    translateY: speedAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [20, -10]
+                    })
+                  },
+                  { 
+                    scale: speedAnim.interpolate({
+                      inputRange: [0, 0.5, 1],
+                      outputRange: [0.8, 1.1, 1]
+                    })
+                  }
+                ]
+              }
+            ]}
+          >
+            <View style={styles.speedFeedbackContent}>
+              <Icon 
+                name={speedMultiplier >= 2 ? "flash" : speedMultiplier >= 1.5 ? "run-fast" : "check"} 
+                size={18} 
+                color={speedMultiplier >= 2 ? "#FF6B35" : speedMultiplier >= 1.5 ? "#FFA500" : "#4CAF50"} 
+              />
+              <Text style={[
+                styles.speedCategoryText,
+                { color: speedMultiplier >= 2 ? "#FF6B35" : speedMultiplier >= 1.5 ? "#FFA500" : "#4CAF50" }
+              ]}>
+                {speedCategory}
+              </Text>
+              {speedMultiplier > 1 && (
+                <Text style={styles.speedMultiplierText}>
+                  {speedMultiplier}x Bonus!
+                </Text>
+              )}
+            </View>
           </Animated.View>
         )}
         
@@ -855,11 +959,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#e9ecef',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 2,
-    elevation: 1,
   },
   optionKeyContainer: {
     width: 36,
@@ -940,6 +1039,37 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 20,
     fontFamily: Platform.OS === 'ios' ? 'Avenir-Black' : 'sans-serif-black',
+  },
+  speedFeedbackContainer: {
+    position: 'absolute',
+    top: '40%', 
+    right: '10%',
+    backgroundColor: 'white',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 6,
+  },
+  speedFeedbackContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  speedCategoryText: {
+    fontWeight: 'bold',
+    fontSize: 16,
+    marginLeft: 6,
+    fontFamily: Platform.OS === 'ios' ? 'Avenir-Heavy' : 'sans-serif-medium',
+  },
+  speedMultiplierText: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginLeft: 8,
+    color: '#666',
+    fontFamily: Platform.OS === 'ios' ? 'Avenir-Medium' : 'sans-serif',
   },
   hoverableOption: {
     // This is for a subtle hover effect

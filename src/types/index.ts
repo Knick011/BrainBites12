@@ -1,9 +1,9 @@
-// src/types/index.ts - Complete TypeScript Types for BrainBites
+// src/types/index.ts
+// Type definitions for the BrainBites quiz app
 
-// Navigation Types
 export type RootStackParamList = {
   Home: undefined;
-  Quiz: { difficulty: 'easy' | 'medium' | 'hard'; category?: string };
+  Quiz: { difficulty?: 'easy' | 'medium' | 'hard'; category?: string };
   Categories: undefined;
   DailyGoals: undefined;
   Leaderboard: undefined;
@@ -11,7 +11,6 @@ export type RootStackParamList = {
   Welcome: undefined;
 };
 
-// Question Types
 export interface Question {
   id: string;
   question: string;
@@ -46,7 +45,6 @@ export interface QuizScreenState {
   pointsEarned: number;
 }
 
-// User Types
 export interface UserStats {
   totalScore: number;
   totalQuestionsAnswered: number;
@@ -74,7 +72,6 @@ export interface DailyGoal {
   type: 'questions' | 'streak' | 'accuracy' | 'time' | 'difficulty' | 'category' | 'perfect';
 }
 
-// Timer Types
 export interface TimerState {
   remainingTime: number;
   isRunning: boolean;
@@ -82,7 +79,6 @@ export interface TimerState {
   isPaused: boolean;
 }
 
-// Sound Types
 export type SoundEffect = 
   | 'correct'
   | 'incorrect'
@@ -98,7 +94,6 @@ export type SoundEffect =
   | 'goalComplete'
   | 'backgroundMusic';
 
-// Mascot Types
 export type MascotMood = 
   | 'peeking'
   | 'happy'
@@ -108,7 +103,6 @@ export type MascotMood =
   | 'depressed'
   | 'below';
 
-// Leaderboard Types
 export interface LeaderboardEntry {
   rank: number;
   name: string;
@@ -123,7 +117,6 @@ export interface LeaderboardEntry {
   isCurrentUser?: boolean;
 }
 
-// Category Types
 export interface Category {
   id: string;
   name: string;
@@ -133,7 +126,6 @@ export interface Category {
   questionCount: number;
 }
 
-// Difficulty Types
 export interface DifficultyOption {
   level: 'easy' | 'medium' | 'hard';
   title: string;
@@ -142,21 +134,6 @@ export interface DifficultyOption {
   icon: string;
   points: string;
   timeReward: number;
-}
-
-// Analytics Event Types
-export interface AnalyticsEvent {
-  name: string;
-  params?: { [key: string]: any };
-  timestamp: number;
-}
-
-// AdMob Types
-export interface AdConfig {
-  bannerId: string;
-  interstitialId: string;
-  rewardedId: string;
-  testMode: boolean;
 }
 
 // Score Types
@@ -178,6 +155,9 @@ export interface ScoreResult {
   streakLevel: number;
   isMilestone: boolean;
   newStreak: number;
+  speedCategory: string;
+  speedMultiplier: number;
+  baseScore: number;
 }
 
 // Timer Update Types

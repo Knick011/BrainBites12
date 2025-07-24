@@ -40,14 +40,6 @@ class ErrorBoundary extends Component<Props, State> {
       componentStack: errorInfo.componentStack,
     });
 
-    // Log to Firebase Crashlytics if available
-    try {
-      const { logError } = require('../../config/Firebase');
-      logError(error, errorInfo);
-    } catch (firebaseError) {
-      console.log('⚠️ Could not log error to Firebase:', firebaseError);
-    }
-
     // Call custom error handler if provided
     if (this.props.onError) {
       this.props.onError(error, errorInfo);

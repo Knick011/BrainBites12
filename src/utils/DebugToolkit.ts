@@ -1,9 +1,7 @@
 // src/utils/DebugToolkit.ts
-// ✅ COMPREHENSIVE: Debug and verification toolkit for RN 0.79.5 fixes
-// ✅ TESTING: Verify all fixes are working correctly
-// console.log: "Complete debugging toolkit to verify all RN 0.79.5 compatibility fixes"
+// Comprehensive debugging and compatibility checking toolkit for React Native app
 
-import { Platform, BackHandler, Alert } from 'react-native';
+import { BackHandler, Alert } from 'react-native';
 
 interface ServiceStatus {
   name: string;
@@ -43,8 +41,8 @@ interface DebugReport {
 class DebugToolkit {
   private report: DebugReport = {
     timestamp: new Date().toISOString(),
-    rnVersion: '0.79.5',
-    platform: Platform.OS,
+    rnVersion: '',
+    platform: '',
     services: [],
     api: {
       backHandler: {
@@ -67,20 +65,21 @@ class DebugToolkit {
     recommendations: [],
   };
 
-  // ===== MAIN DIAGNOSTIC METHODS =====
+  constructor() {
+    this.resetReport();
+  }
 
   /**
-   * Run complete diagnostic check of all RN 0.79.5 fixes
+   * Run complete compatibility check
    */
   public async runCompleteCheck(): Promise<DebugReport> {
-    console.log('🔍 [Debug] Starting complete RN 0.79.5 compatibility check...');
+    console.log('🔍 [Debug] Starting complete compatibility check...');
     
     this.resetReport();
     
     // Check all systems
     await this.checkBackHandlerAPI();
     await this.checkSoundService();
-    await this.checkFirebaseService();
     await this.checkQuestionService();
     await this.checkReactVersions();
     await this.checkAssets();
@@ -112,16 +111,6 @@ class DebugToolkit {
         }
       } else {
         criticalIssues.push('SoundService not available');
-      }
-      
-      // Check Firebase
-      const Firebase = this.getFirebaseConfig();
-      if (Firebase) {
-        if (typeof Firebase.initializeFirebase !== 'function') {
-          criticalIssues.push('Firebase.initializeFirebase is not a function');
-        }
-      } else {
-        criticalIssues.push('Firebase config not available');
       }
       
       // Check QuestionService
@@ -177,26 +166,24 @@ class DebugToolkit {
           'playIncorrect', 'playStreak', 'startMenuMusic', 'startGameMusic',
           'stopMusic', 'pauseMusic', 'resumeMusic', 'setMusicEnabled',
           'setSoundEnabled', 'setMusicVolume', 'setEffectsVolume',
-          'getMusicEnabled', 'getSoundEnabled', 'getMusicVolume', 
-          'getEffectsVolume', 'isReady', 'release'
         ];
         
         requiredMethods.forEach(method => {
           if (typeof soundService[method] === 'function') {
             status.methods.push(method);
           } else {
-            status.errors.push(`Method ${method} is not a function`);
+            status.errors.push(`Missing method: ${method}`);
           }
         });
         
-        // Check initialization status
-        if (typeof soundService.isReady === 'function') {
-          status.initialized = soundService.isReady();
-        }
-        
-        // Get service details
-        if (typeof soundService.getStatus === 'function') {
-          status.details = soundService.getStatus();
+        // Check initialization
+        if (typeof soundService.initialize === 'function') {
+          try {
+            await soundService.initialize();
+            status.initialized = true;
+          } catch (error: any) {
+            status.errors.push(`Initialization failed: ${error?.message}`);
+          }
         }
         
         console.log(`✅ [Debug] SoundService: ${status.methods.length} methods, ${status.errors.length} errors`);
@@ -213,61 +200,8 @@ class DebugToolkit {
     this.report.services.push(status);
   }
 
-  private async checkFirebaseService(): Promise<void> {
-    console.log('🔥 [Debug] Checking Firebase...');
-    
-    const firebase = this.getFirebaseConfig();
-    const status: ServiceStatus = {
-      name: 'Firebase',
-      available: !!firebase,
-      initialized: false,
-      methods: [],
-      errors: [],
-    };
-    
-    if (firebase) {
-      try {
-        // Check required methods
-        const requiredMethods = [
-          'initializeFirebase', 'logEvent', 'logScreenView', 
-          'setUserProperties', 'logError', 'setUserId',
-          'isFirebaseReady', 'getFirebaseStatus'
-        ];
-        
-        requiredMethods.forEach(method => {
-          if (typeof firebase[method] === 'function') {
-            status.methods.push(method);
-          } else {
-            status.errors.push(`Method ${method} is not a function`);
-          }
-        });
-        
-        // Check initialization status
-        if (typeof firebase.isFirebaseReady === 'function') {
-          status.initialized = firebase.isFirebaseReady();
-        }
-        
-        // Get service details
-        if (typeof firebase.getFirebaseStatus === 'function') {
-          status.details = firebase.getFirebaseStatus();
-        }
-        
-        console.log(`✅ [Debug] Firebase: ${status.methods.length} methods, ${status.errors.length} errors`);
-        
-      } catch (error: any) {
-        status.errors.push(`Firebase check error: ${error?.message}`);
-        console.log('❌ [Debug] Firebase check failed:', error);
-      }
-    } else {
-      status.errors.push('Firebase module not found');
-      console.log('❌ [Debug] Firebase not available');
-    }
-    
-    this.report.services.push(status);
-  }
-
   private async checkQuestionService(): Promise<void> {
-    console.log('📚 [Debug] Checking QuestionService...');
+    console.log('❓ [Debug] Checking QuestionService...');
     
     const questionService = this.getQuestionService();
     const status: ServiceStatus = {
@@ -283,33 +217,25 @@ class DebugToolkit {
         // Check required methods
         const requiredMethods = [
           'initialize', 'getRandomQuestion', 'getQuestionsByCategory',
-          'getQuestionsByDifficulty', 'getAvailableCategories',
-          'getTotalQuestionCount', 'isServiceReady', 'getServiceStatus'
+          'getQuestionsByDifficulty', 'getAllQuestions', 'getCategories',
+          'getDifficulties'
         ];
         
         requiredMethods.forEach(method => {
           if (typeof questionService[method] === 'function') {
             status.methods.push(method);
           } else {
-            status.errors.push(`Method ${method} is not a function`);
+            status.errors.push(`Missing method: ${method}`);
           }
         });
         
-        // Check initialization status
-        if (typeof questionService.isServiceReady === 'function') {
-          status.initialized = questionService.isServiceReady();
-        }
-        
-        // Get service details
-        if (typeof questionService.getServiceStatus === 'function') {
-          status.details = questionService.getServiceStatus();
-        }
-        
-        // Test question availability
-        if (typeof questionService.getTotalQuestionCount === 'function') {
-          const questionCount = questionService.getTotalQuestionCount();
-          if (questionCount === 0) {
-            status.errors.push('No questions loaded');
+        // Check initialization
+        if (typeof questionService.initialize === 'function') {
+          try {
+            await questionService.initialize();
+            status.initialized = true;
+          } catch (error: any) {
+            status.errors.push(`Initialization failed: ${error?.message}`);
           }
         }
         
@@ -330,23 +256,20 @@ class DebugToolkit {
   private async checkBackHandlerAPI(): Promise<void> {
     console.log('🔙 [Debug] Checking BackHandler API...');
     
-    try {
-      this.report.api.backHandler = {
-        available: !!BackHandler,
-        addEventListener: !!(BackHandler && typeof BackHandler.addEventListener === 'function'),
-        removeEventListener: !!(BackHandler && typeof BackHandler.removeEventListener === 'function'),
-        exitApp: !!(BackHandler && typeof BackHandler.exitApp === 'function'),
-      };
-      
-      if (!this.report.api.backHandler.removeEventListener) {
-        this.report.warnings.push('BackHandler.removeEventListener not available (expected in RN 0.79.5)');
-      }
-      
-      console.log('✅ [Debug] BackHandler API check completed');
-      
-    } catch (error: any) {
-      this.report.errors.push(`BackHandler API check error: ${error?.message}`);
-      console.log('❌ [Debug] BackHandler API check failed:', error);
+    const backHandler = {
+      available: !!BackHandler,
+      addEventListener: typeof BackHandler?.addEventListener === 'function',
+      removeEventListener: typeof BackHandler?.removeEventListener === 'function',
+      exitApp: typeof BackHandler?.exitApp === 'function',
+    };
+    
+    this.report.api.backHandler = backHandler;
+    
+    const allAvailable = Object.values(backHandler).every(Boolean);
+    console.log(`✅ [Debug] BackHandler API: ${allAvailable ? 'FULLY AVAILABLE' : 'PARTIALLY AVAILABLE'}`);
+    
+    if (!allAvailable) {
+      this.report.warnings.push('BackHandler API partially available');
     }
   }
 
@@ -354,31 +277,63 @@ class DebugToolkit {
     console.log('⚛️ [Debug] Checking React versions...');
     
     try {
-      // Try to get React version
       const React = require('react');
-      this.report.api.react.version = React.version || null;
+      this.report.api.react.version = React.version;
       
-      // This is a simplified check - in a real environment you'd check package.json
-      console.log('✅ [Debug] React version check completed');
+      // Check for duplicate React installations
+      const reactPaths = require.resolve.paths('react');
+      this.report.api.react.duplicates = reactPaths && reactPaths.length > 1;
+      
+      console.log(`✅ [Debug] React version: ${React.version}`);
+      
+      if (this.report.api.react.duplicates) {
+        this.report.warnings.push('Multiple React installations detected');
+      }
       
     } catch (error: any) {
-      this.report.errors.push(`React version check error: ${error?.message}`);
+      this.report.errors.push(`React version check failed: ${error?.message}`);
       console.log('❌ [Debug] React version check failed:', error);
     }
   }
 
   private async checkAssets(): Promise<void> {
-    console.log('🎵 [Debug] Checking assets...');
+    console.log('📁 [Debug] Checking assets...');
     
     try {
-      // This is a basic check - you'd need to implement asset verification based on your setup
-      const expectedSounds = ['buttonpress', 'correct', 'incorrect', 'streak', 'gamemusic', 'menumusic'];
-      this.report.assets.sounds = expectedSounds;
+      // Check sound assets
+      const soundAssets = [
+        'buttonpress.mp3', 'correct.mp3', 'incorrect.mp3',
+        'gamemusic.mp3', 'menumusic.mp3', 'streak.mp3'
+      ];
       
-      console.log('✅ [Debug] Asset check completed');
+      soundAssets.forEach(sound => {
+        try {
+          require(`../assets/sounds/${sound}`);
+          this.report.assets.sounds.push(sound);
+        } catch (error) {
+          this.report.errors.push(`Sound asset missing: ${sound}`);
+        }
+      });
+      
+      // Check image assets
+      const imageAssets = [
+        'happy.png', 'sad.png', 'excited.png', 'depressed.png',
+        'below.png', 'gamemode.png'
+      ];
+      
+      imageAssets.forEach(image => {
+        try {
+          require(`../assets/mascot/${image}`);
+          this.report.assets.images.push(image);
+        } catch (error) {
+          this.report.errors.push(`Image asset missing: ${image}`);
+        }
+      });
+      
+      console.log(`✅ [Debug] Assets: ${this.report.assets.sounds.length} sounds, ${this.report.assets.images.length} images`);
       
     } catch (error: any) {
-      this.report.errors.push(`Asset check error: ${error?.message}`);
+      this.report.errors.push(`Asset check failed: ${error?.message}`);
       console.log('❌ [Debug] Asset check failed:', error);
     }
   }
@@ -388,14 +343,6 @@ class DebugToolkit {
   private getSoundService(): any {
     try {
       return require('../services/SoundService').default;
-    } catch (error) {
-      return null;
-    }
-  }
-
-  private getFirebaseConfig(): any {
-    try {
-      return require('../config/Firebase');
     } catch (error) {
       return null;
     }
@@ -412,8 +359,8 @@ class DebugToolkit {
   private resetReport(): void {
     this.report = {
       timestamp: new Date().toISOString(),
-      rnVersion: '0.79.5',
-      platform: Platform.OS,
+      rnVersion: require('react-native/package.json').version,
+      platform: require('react-native').Platform.OS,
       services: [],
       api: {
         backHandler: {
@@ -438,91 +385,79 @@ class DebugToolkit {
   }
 
   private generateRecommendations(): void {
-    // Check for critical issues and generate recommendations
-    const allErrors = this.report.services.flatMap(service => service.errors);
+    const allErrors = [
+      ...this.report.errors,
+      ...this.report.services.flatMap(s => s.errors),
+    ];
     
-    if (allErrors.some(error => error.includes('playButtonClick'))) {
-      this.report.recommendations.push('Update SoundService with RN 0.79.5 compatible version');
+    if (allErrors.some(error => error.includes('SoundService'))) {
+      this.report.recommendations.push('Check SoundService installation and configuration');
     }
     
-    if (allErrors.some(error => error.includes('initializeFirebase'))) {
-      this.report.recommendations.push('Update Firebase config with explicit app initialization');
+    if (allErrors.some(error => error.includes('QuestionService'))) {
+      this.report.recommendations.push('Verify QuestionService data files are present');
     }
     
-    if (allErrors.some(error => error.includes('No questions'))) {
-      this.report.recommendations.push('Check QuestionService data loading and initialization');
+    if (allErrors.some(error => error.includes('BackHandler'))) {
+      this.report.recommendations.push('BackHandler API may not be available on this platform');
     }
     
-    if (!this.report.api.backHandler.removeEventListener) {
-      this.report.recommendations.push('Use new BackHandler subscription pattern for RN 0.79.5');
+    if (this.report.api.react.duplicates) {
+      this.report.recommendations.push('Run npm dedupe to resolve React version conflicts');
     }
     
-    if (this.report.errors.length > 0) {
-      this.report.recommendations.push('Address all errors listed above for full compatibility');
+    if (this.report.assets.sounds.length < 6) {
+      this.report.recommendations.push('Some sound assets are missing - check assets/sounds/ directory');
+    }
+    
+    if (this.report.assets.images.length < 6) {
+      this.report.recommendations.push('Some image assets are missing - check assets/mascot/ directory');
     }
   }
 
   private printReport(): void {
-    console.log('\n📊 [Debug] COMPLETE RN 0.79.5 COMPATIBILITY REPORT');
-    console.log('====================================================');
-    console.log(`🕒 Timestamp: ${this.report.timestamp}`);
-    console.log(`📱 Platform: ${this.report.platform}`);
-    console.log(`⚛️ RN Version: ${this.report.rnVersion}`);
-    console.log(`⚛️ React Version: ${this.report.api.react.version || 'Unknown'}`);
-    console.log('');
+    console.log('\n📊 === DEBUG REPORT ===');
+    console.log(`Timestamp: ${this.report.timestamp}`);
+    console.log(`React Native: ${this.report.rnVersion}`);
+    console.log(`Platform: ${this.report.platform}`);
     
-    // Services Report
-    console.log('🔧 SERVICES STATUS:');
+    console.log('\n🔧 SERVICES:');
     this.report.services.forEach(service => {
-      const status = service.available ? '✅' : '❌';
-      const init = service.initialized ? '✅' : '⚠️';
-      console.log(`  ${status} ${service.name} - Available: ${service.available}, Initialized: ${service.initialized} ${init}`);
-      console.log(`     Methods: ${service.methods.length}, Errors: ${service.errors.length}`);
-      
+      const icon = service.available ? '✅' : '❌';
+      const initIcon = service.initialized ? '✅' : '❌';
+      console.log(`${icon} ${service.name} (Initialized: ${initIcon})`);
       if (service.errors.length > 0) {
-        service.errors.forEach(error => {
-          console.log(`     ❌ ${error}`);
-        });
+        service.errors.forEach(error => console.log(`  ❌ ${error}`));
       }
     });
     
-    console.log('');
+    console.log('\n🔌 API:');
+    console.log(`BackHandler: ${this.report.api.backHandler.available ? '✅' : '❌'}`);
+    console.log(`React: ${this.report.api.react.version} ${this.report.api.react.duplicates ? '(DUPLICATES)' : ''}`);
     
-    // API Report
-    console.log('🔌 API STATUS:');
-    const bh = this.report.api.backHandler;
-    console.log(`  BackHandler: Available: ${bh.available ? '✅' : '❌'}, addEventListener: ${bh.addEventListener ? '✅' : '❌'}`);
-    console.log(`  removeEventListener: ${bh.removeEventListener ? '✅' : '⚠️'} (Expected ⚠️ in RN 0.79.5)`);
-    console.log('');
+    console.log('\n📁 ASSETS:');
+    console.log(`Sounds: ${this.report.assets.sounds.length}/6`);
+    console.log(`Images: ${this.report.assets.images.length}/6`);
     
-    // Errors & Warnings
     if (this.report.errors.length > 0) {
-      console.log('❌ ERRORS:');
-      this.report.errors.forEach(error => console.log(`   ${error}`));
-      console.log('');
+      console.log('\n❌ ERRORS:');
+      this.report.errors.forEach(error => console.log(`  ${error}`));
     }
     
     if (this.report.warnings.length > 0) {
-      console.log('⚠️ WARNINGS:');
-      this.report.warnings.forEach(warning => console.log(`   ${warning}`));
-      console.log('');
+      console.log('\n⚠️ WARNINGS:');
+      this.report.warnings.forEach(warning => console.log(`  ${warning}`));
     }
     
-    // Recommendations
     if (this.report.recommendations.length > 0) {
-      console.log('💡 RECOMMENDATIONS:');
-      this.report.recommendations.forEach(rec => console.log(`   ${rec}`));
-      console.log('');
+      console.log('\n💡 RECOMMENDATIONS:');
+      this.report.recommendations.forEach(rec => console.log(`  ${rec}`));
     }
     
-    // Overall Status
-    const criticalIssues = this.report.services.filter(s => !s.available || s.errors.length > 0).length;
-    const overallStatus = criticalIssues === 0 ? '✅ HEALTHY' : `⚠️ ${criticalIssues} ISSUES FOUND`;
-    console.log(`🎯 OVERALL STATUS: ${overallStatus}`);
-    console.log('====================================================\n');
+    console.log('=== END REPORT ===\n');
   }
 
-  // ===== PUBLIC TEST METHODS =====
+  // ===== TESTING METHODS =====
 
   /**
    * Test SoundService functionality
@@ -537,18 +472,20 @@ class DebugToolkit {
     }
     
     try {
-      // Test button click
+      // Test basic methods
       if (typeof soundService.playButtonClick === 'function') {
         soundService.playButtonClick();
         console.log('✅ [Debug] SoundService.playButtonClick() - OK');
-      } else {
-        console.log('❌ [Debug] SoundService.playButtonClick() - NOT A FUNCTION');
       }
       
-      // Test status method
-      if (typeof soundService.getStatus === 'function') {
-        const status = soundService.getStatus();
-        console.log('📊 [Debug] SoundService status:', status);
+      if (typeof soundService.playCorrect === 'function') {
+        soundService.playCorrect();
+        console.log('✅ [Debug] SoundService.playCorrect() - OK');
+      }
+      
+      if (typeof soundService.playIncorrect === 'function') {
+        soundService.playIncorrect();
+        console.log('✅ [Debug] SoundService.playIncorrect() - OK');
       }
       
     } catch (error) {
@@ -557,64 +494,26 @@ class DebugToolkit {
   }
 
   /**
-   * Test Firebase functionality
-   */
-  public testFirebase(): void {
-    console.log('🔥 [Debug] Testing Firebase functionality...');
-    
-    const firebase = this.getFirebaseConfig();
-    if (!firebase) {
-      console.log('❌ [Debug] Firebase not available for testing');
-      return;
-    }
-    
-    try {
-      // Test initialization check
-      if (typeof firebase.isFirebaseReady === 'function') {
-        const ready = firebase.isFirebaseReady();
-        console.log(`📊 [Debug] Firebase ready: ${ready ? '✅' : '❌'}`);
-      }
-      
-      // Test status method
-      if (typeof firebase.getFirebaseStatus === 'function') {
-        const status = firebase.getFirebaseStatus();
-        console.log('📊 [Debug] Firebase status:', status);
-      }
-      
-      // Test event logging
-      if (typeof firebase.logEvent === 'function') {
-        firebase.logEvent('debug_test_event', { test: true });
-        console.log('✅ [Debug] Firebase.logEvent() - OK');
-      }
-      
-    } catch (error) {
-      console.log('❌ [Debug] Firebase test failed:', error);
-    }
-  }
-
-  /**
-   * Show user-friendly diagnostic alert
+   * Show diagnostic alert with key information
    */
   public showDiagnosticAlert(): void {
-    this.quickHealthCheck().then(({ healthy, criticalIssues }) => {
-      const title = healthy ? '✅ System Healthy' : '⚠️ Issues Found';
-      const message = healthy 
-        ? 'All RN 0.79.5 compatibility fixes are working correctly!'
-        : `Found ${criticalIssues.length} issues:\n\n${criticalIssues.slice(0, 3).join('\n')}${criticalIssues.length > 3 ? '\n...' : ''}`;
-      
-      Alert.alert(title, message, [
-        { text: 'OK', style: 'default' }
-      ]);
-    });
+    const healthy = this.report.errors.length === 0;
+    const title = healthy ? '✅ System Healthy' : '❌ Issues Detected';
+    
+    const message = [
+      `React Native: ${this.report.rnVersion}`,
+      `Platform: ${this.report.platform}`,
+      `Services: ${this.report.services.filter(s => s.available).length}/${this.report.services.length}`,
+      `Errors: ${this.report.errors.length}`,
+      `Warnings: ${this.report.warnings.length}`,
+    ].join('\n');
+    
+    Alert.alert(title, message);
   }
 }
 
-// Export singleton instance
-export default new DebugToolkit();
-
-// Export convenience functions
+// Export utility functions
 export const runCompatibilityCheck = () => new DebugToolkit().runCompleteCheck();
 export const quickHealthCheck = () => new DebugToolkit().quickHealthCheck();
 export const testSoundService = () => new DebugToolkit().testSoundService();
-export const testFirebase = () => new DebugToolkit().testFirebase();
 export const showDiagnostic = () => new DebugToolkit().showDiagnosticAlert();

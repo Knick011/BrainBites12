@@ -1,107 +1,85 @@
-import React, { useEffect, useRef } from 'react';
+// src/components/CategoryCard.tsx
+// Category card component for quiz category selection
+
+import React from 'react';
 import {
-  TouchableOpacity,
+  View,
   Text,
+  TouchableOpacity,
   StyleSheet,
   Animated,
-  View,
-  Platform,
-  Dimensions,
+  Platform
 } from 'react-native';
-import Icon from 'react-native-vector-icons/Ionicons';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const CARD_WIDTH = (SCREEN_WIDTH - 48) / 2; // 2 columns with padding
+import LinearGradient from 'react-native-linear-gradient';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { CategoryInfo } from '../utils/categoryUtils';
 
 interface CategoryCardProps {
-  category: {
-    id: string;
-    name: string;
-    icon: string;
-    color: string;
-    description: string;
-  };
-  onPress: () => void;
-  index: number;
+  category: CategoryInfo;
+  onPress: (category: CategoryInfo) => void;
+  animationValue?: Animated.Value;
+  delay?: number;
 }
 
-const CategoryCard: React.FC<CategoryCardProps> = ({ category, onPress, index }) => {
-  const scaleAnim = useRef(new Animated.Value(0)).current;
-  const rotateAnim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.parallel([
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        delay: index * 50,
-        tension: 10,
-        friction: 6,
-        useNativeDriver: true,
-      }),
-      Animated.timing(rotateAnim, {
-        toValue: 1,
-        delay: index * 50,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, []);
-
-  const handlePressIn = () => {
-    Animated.spring(scaleAnim, {
-      toValue: 0.95,
-      useNativeDriver: true,
-    }).start();
+const CategoryCard: React.FC<CategoryCardProps> = ({
+  category,
+  onPress,
+  animationValue,
+  delay = 0
+}) => {
+  const handlePress = () => {
+    onPress(category);
   };
 
-  const handlePressOut = () => {
-    Animated.spring(scaleAnim, {
-      toValue: 1,
-      friction: 3,
-      tension: 40,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const spin = rotateAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['180deg', '0deg'],
-  });
+  const animatedStyle = animationValue ? {
+    opacity: animationValue,
+    transform: [
+      {
+        translateY: animationValue.interpolate({
+          inputRange: [0, 1],
+          outputRange: [50, 0]
+        })
+      },
+      {
+        scale: animationValue.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0.8, 1]
+        })
+      }
+    ]
+  } : {};
 
   return (
-    <Animated.View
-      style={[
-        styles.container,
-        {
-          transform: [
-            { scale: scaleAnim },
-            { rotateY: spin },
-          ],
-        },
-      ]}
-    >
-      <TouchableOpacity
-        style={[styles.card, { borderColor: category.color }]}
-        onPress={onPress}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
-        activeOpacity={0.9}
-      >
-        <View style={[styles.iconContainer, { backgroundColor: category.color + '20' }]}>
-          <Icon name={category.icon} size={32} color={category.color} />
-        </View>
-        <Text style={styles.title}>{category.name}</Text>
-        <Text style={styles.description}>{category.description}</Text>
-        <View style={styles.startButton}>
-          <Icon name="play" size={16} color={category.color} />
-          <Text style={[styles.startText, { color: category.color }]}>Start</Text>
-        </View>
-        <Icon 
-          name="arrow-forward" 
-          size={20} 
-          color={category.color} 
-          style={styles.arrow}
-        />
+    <Animated.View style={[styles.container, animatedStyle]}>
+      <TouchableOpacity onPress={handlePress} activeOpacity={0.8}>
+        <LinearGradient
+          colors={category.gradient}
+          style={styles.card}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <View style={styles.iconContainer}>
+            <Icon 
+              name={category.icon} 
+              size={32} 
+              color="white" 
+              style={styles.icon}
+            />
+          </View>
+          
+          <View style={styles.textContainer}>
+            <Text style={styles.categoryName} numberOfLines={2}>
+              {category.displayName}
+            </Text>
+            <Text style={styles.questionCount}>
+              {category.questionCount} question{category.questionCount !== 1 ? 's' : ''}
+            </Text>
+          </View>
+
+          <View style={styles.arrowContainer}>
+            <Icon name="chevron-right" size={24} color="rgba(255, 255, 255, 0.8)" />
+          </View>
+        </LinearGradient>
       </TouchableOpacity>
     </Animated.View>
   );
@@ -109,58 +87,60 @@ const CategoryCard: React.FC<CategoryCardProps> = ({ category, onPress, index })
 
 const styles = StyleSheet.create({
   container: {
-    width: CARD_WIDTH,
-    marginBottom: 12,
+    flex: 1,
+    margin: 8,
+    minWidth: 160,
+    maxWidth: 200,
   },
   card: {
-    backgroundColor: 'white',
     borderRadius: 16,
     padding: 16,
-    height: 180,
-    borderWidth: 2,
-    elevation: 2,
+    minHeight: 120,
+    flexDirection: 'column',
+    justifyContent: 'space-between',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
   iconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-    alignSelf: 'center',
+    alignSelf: 'flex-start',
+    marginBottom: 8,
   },
-  title: {
-    fontSize: 18,
+  icon: {
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+  },
+  textContainer: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  categoryName: {
+    fontSize: 16,
     fontWeight: 'bold',
-    color: '#333',
-    textAlign: 'center',
+    color: 'white',
     marginBottom: 4,
-    fontFamily: Platform.OS === 'ios' ? 'Avenir-Heavy' : 'Roboto-Bold',
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+    fontFamily: Platform.OS === 'ios' ? 'Avenir-Heavy' : 'sans-serif-medium',
   },
-  description: {
+  questionCount: {
     fontSize: 12,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 12,
+    color: 'rgba(255, 255, 255, 0.9)',
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+    fontFamily: Platform.OS === 'ios' ? 'Avenir' : 'sans-serif',
   },
-  startButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-  },
-  startText: {
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  arrow: {
-    position: 'absolute',
-    bottom: 16,
-    right: 16,
+  arrowContainer: {
+    alignSelf: 'flex-end',
+    marginTop: 8,
   },
 });
 

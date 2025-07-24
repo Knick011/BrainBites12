@@ -23,6 +23,16 @@ target 'BrainBites' do
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
 
+  # Firebase pods
+  pod 'Firebase/Core'
+  pod 'Firebase/Analytics'
+  pod 'Firebase/Crashlytics'
+  pod 'Firebase/Messaging'
+  pod 'Firebase/RemoteConfig'
+  
+  # AdMob pods
+  pod 'Google-Mobile-Ads-SDK'
+
   post_install do |installer|
     # https://github.com/facebook/react-native/blob/main/packages/react-native/scripts/react_native_pods.rb#L197-L202
     react_native_post_install(
@@ -31,5 +41,27 @@ target 'BrainBites' do
       :mac_catalyst_enabled => false,
       # :ccache_enabled => true
     )
+    
+    # Enable Firebase Analytics collection
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |config|
+        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ['$(inherited)']
+        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FIRAnalyticsCollectionEnabled=1'
+        
+        # Ensure proper iOS deployment target
+        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
+        
+        # Enable bitcode for Firebase compatibility
+        config.build_settings['ENABLE_BITCODE'] = 'NO'
+      end
+    end
+    
+    # Fix for Xcode 15+ compatibility
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |config|
+        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ['$(inherited)']
+        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << '$(inherited)'
+      end
+    end
   end
 end
