@@ -1,6 +1,5 @@
 // src/store/useLiveGameStore.ts
-// ✅ LIVE STATE MANAGEMENT SYSTEM - Part 1 of 3
-// Real-time reactive state management for scores, streaks, and daily goals
+// ✅ FIXED LIVE STATE MANAGEMENT - Properly integrated with existing codebase
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -63,17 +62,9 @@ export interface LiveGameState {
   // Actions
   initialize: () => Promise<void>;
   updateScoreData: (scoreData: LiveScoreData) => void;
-  processQuizCompletion: (result: {
-    isCorrect: boolean;
-    pointsEarned: number;
-    newScore: number;
-    newStreak: number;
-    timeEarned?: number;
-    category?: string;
-    difficulty?: string;
-  }) => Promise<void>;
+  processQuizCompletion: (result: any) => Promise<void>;
   updateDailyGoalProgress: () => Promise<void>;
-  completeGoal: (goalId: string) => Promise<number>; // Returns time bonus
+  completeGoal: (goalId: string) => Promise<number>;
   claimGoalReward: (goalId: string) => Promise<void>;
   
   // Event System
@@ -92,6 +83,7 @@ export interface LiveGameState {
   refreshFromStorage: () => Promise<void>;
   saveToStorage: () => Promise<void>;
   reset: () => Promise<void>;
+  loadDailyGoals: () => Promise<void>;
 }
 
 // ==================== GOAL TEMPLATES ====================
@@ -101,10 +93,10 @@ const DAILY_GOALS_POOL = [
     id: 'questions_30',
     type: 'questions' as const,
     target: 30,
-    reward: 1800, // 30 minutes
+    reward: 1800, // 30 minutes in seconds
     title: 'Quiz Master',
     description: 'Answer 30 questions',
-    icon: 'help-circle-outline',
+    icon: '❓',
     color: '#4CAF50'
   },
   {
@@ -114,7 +106,7 @@ const DAILY_GOALS_POOL = [
     reward: 3600, // 60 minutes
     title: 'Knowledge Seeker',
     description: 'Answer 50 questions',
-    icon: 'book-open-outline',
+    icon: '📚',
     color: '#4CAF50'
   },
   {
@@ -124,7 +116,7 @@ const DAILY_GOALS_POOL = [
     reward: 2700, // 45 minutes
     title: 'Streak Champion',
     description: 'Achieve 10 question streak',
-    icon: 'fire',
+    icon: '🔥',
     color: '#FF9F1C'
   },
   {
@@ -134,7 +126,7 @@ const DAILY_GOALS_POOL = [
     reward: 3600, // 60 minutes
     title: 'Streak Master',
     description: 'Achieve 15 question streak',
-    icon: 'fire',
+    icon: '🔥',
     color: '#FF6B35'
   },
   {
@@ -145,7 +137,7 @@ const DAILY_GOALS_POOL = [
     reward: 3600, // 60 minutes
     title: 'Precision Expert',
     description: 'Get 80% accuracy (min 20 questions)',
-    icon: 'target',
+    icon: '🎯',
     color: '#2196F3'
   },
   {
@@ -156,7 +148,7 @@ const DAILY_GOALS_POOL = [
     reward: 5400, // 90 minutes
     title: 'Near Perfect',
     description: 'Get 90% accuracy (min 15 questions)',
-    icon: 'bullseye',
+    icon: '🎯',
     color: '#1976D2'
   },
   {
@@ -166,7 +158,7 @@ const DAILY_GOALS_POOL = [
     reward: 2400, // 40 minutes
     title: 'Perfect Run',
     description: 'Get 10 questions correct in a row',
-    icon: 'star-circle-outline',
+    icon: '⭐',
     color: '#FFD700'
   }
 ];
@@ -238,6 +230,7 @@ export const useLiveGameStore = create<LiveGameState>()(
     initialize: async () => {
       if (get().isInitialized) return;
       
+      console.log('🔄 Initializing Live Game Store...');
       set({ isLoading: true });
       
       try {
@@ -245,16 +238,18 @@ export const useLiveGameStore = create<LiveGameState>()(
         await EnhancedScoreService.loadSavedData();
         const scoreInfo = EnhancedScoreService.getScoreInfo();
         
+        console.log('📊 Loaded score info:', scoreInfo);
+        
         // Convert to our format
         const scoreData: LiveScoreData = {
-          dailyScore: scoreInfo.dailyScore,
-          currentStreak: scoreInfo.currentStreak,
-          highestStreak: scoreInfo.highestStreak,
-          streakLevel: scoreInfo.streakLevel,
-          totalQuestions: scoreInfo.totalQuestions,
-          correctAnswers: scoreInfo.correctAnswers,
-          accuracy: scoreInfo.accuracy,
-          questionsToday: scoreInfo.questionsToday
+          dailyScore: scoreInfo.dailyScore || 0,
+          currentStreak: scoreInfo.currentStreak || 0,
+          highestStreak: scoreInfo.highestStreak || 0,
+          streakLevel: scoreInfo.streakLevel || 0,
+          totalQuestions: scoreInfo.totalQuestions || 0,
+          correctAnswers: scoreInfo.correctAnswers || 0,
+          accuracy: scoreInfo.accuracy || 0,
+          questionsToday: scoreInfo.questionsToday || 0
         };
         
         // Load or generate daily goals
@@ -271,6 +266,8 @@ export const useLiveGameStore = create<LiveGameState>()(
         await get().updateDailyGoalProgress();
         
         console.log('✅ Live Game Store initialized successfully');
+        console.log('📈 Score Data:', scoreData);
+        console.log('🎯 Daily Goals:', get().dailyGoals.length);
         
       } catch (error) {
         console.error('❌ Failed to initialize Live Game Store:', error);
@@ -296,6 +293,8 @@ export const useLiveGameStore = create<LiveGameState>()(
 
     processQuizCompletion: async (result) => {
       const { isCorrect, pointsEarned, newScore, newStreak, timeEarned = 0, category, difficulty } = result;
+      
+      console.log('🎯 Processing quiz completion:', result);
       
       // Update score data immediately
       const currentData = get().scoreData;
@@ -366,77 +365,85 @@ export const useLiveGameStore = create<LiveGameState>()(
     
     updateDailyGoalProgress: async () => {
       const { scoreData, dailyGoals } = get();
-      const quizStats = await EnhancedScoreService.getTodayQuizStats();
       
-      const updatedGoals = dailyGoals.map(goal => {
-        let current = 0;
-        let completed = false;
+      try {
+        const quizStats = await EnhancedScoreService.getTodayQuizStats();
+        console.log('📊 Quiz stats for goals:', quizStats);
         
-        switch (goal.type) {
-          case 'questions':
-            current = scoreData.questionsToday;
-            completed = current >= goal.target;
-            break;
-            
-          case 'streak':
-            current = Math.max(scoreData.currentStreak, scoreData.highestStreak);
-            completed = current >= goal.target;
-            break;
-            
-          case 'accuracy':
-            if (scoreData.questionsToday >= (goal.questionsRequired || 0)) {
-              current = scoreData.accuracy;
-              completed = current >= goal.target;
-            }
-            break;
-            
-          case 'perfect':
-            current = scoreData.currentStreak;
-            completed = current >= goal.target;
-            break;
-            
-          case 'difficulty':
-            current = quizStats.difficultyCounts?.hard || 0;
-            completed = current >= (goal.questionsRequired || goal.target);
-            break;
-            
-          case 'category':
-            // This would need category tracking in scoreData
-            current = 0; // Placeholder
-            break;
-        }
-        
-        const wasCompleted = goal.completed;
-        const newProgress = calculateProgress(current, goal.target);
-        
-        // Check if goal just completed
-        if (completed && !wasCompleted && !goal.claimed) {
-          get().startGoalAnimation(goal.id);
+        const updatedGoals = dailyGoals.map(goal => {
+          let current = 0;
+          let completed = false;
           
-          // Emit goal completion event
-          setTimeout(() => {
-            get().emitEvent({
-              type: 'GOAL_COMPLETED',
-              data: {
-                goalId: goal.id,
-                title: goal.title,
-                reward: goal.reward,
-                timeBonus: goal.reward
-              },
-              timestamp: Date.now()
-            });
-          }, 100);
-        }
+          switch (goal.type) {
+            case 'questions':
+              current = scoreData.questionsToday;
+              completed = current >= goal.target;
+              break;
+              
+            case 'streak':
+              current = Math.max(scoreData.currentStreak, scoreData.highestStreak);
+              completed = current >= goal.target;
+              break;
+              
+            case 'accuracy':
+              if (scoreData.questionsToday >= (goal.questionsRequired || 0)) {
+                current = scoreData.accuracy;
+                completed = current >= goal.target;
+              }
+              break;
+              
+            case 'perfect':
+              current = scoreData.currentStreak;
+              completed = current >= goal.target;
+              break;
+              
+            case 'difficulty':
+              current = quizStats.difficultyCounts?.hard || 0;
+              completed = current >= (goal.questionsRequired || goal.target);
+              break;
+              
+            case 'category':
+              // This would need category tracking in scoreData
+              current = 0; // Placeholder
+              break;
+          }
+          
+          const wasCompleted = goal.completed;
+          const newProgress = calculateProgress(current, goal.target);
+          
+          // Check if goal just completed
+          if (completed && !wasCompleted && !goal.claimed) {
+            get().startGoalAnimation(goal.id);
+            
+            // Emit goal completion event
+            setTimeout(() => {
+              get().emitEvent({
+                type: 'GOAL_COMPLETED',
+                data: {
+                  goalId: goal.id,
+                  title: goal.title,
+                  reward: goal.reward,
+                  timeBonus: goal.reward
+                },
+                timestamp: Date.now()
+              });
+            }, 100);
+          }
+          
+          return {
+            ...goal,
+            current,
+            progress: newProgress,
+            completed
+          };
+        });
         
-        return {
-          ...goal,
-          current,
-          progress: newProgress,
-          completed
-        };
-      });
-      
-      set({ dailyGoals: updatedGoals });
+        set({ dailyGoals: updatedGoals });
+        console.log('🎯 Updated daily goals:', updatedGoals.map(g => ({ id: g.id, current: g.current, target: g.target, completed: g.completed })));
+        
+      } catch (error) {
+        console.error('Failed to update daily goal progress:', error);
+      }
     },
 
     completeGoal: async (goalId: string) => {
@@ -542,6 +549,8 @@ export const useLiveGameStore = create<LiveGameState>()(
         const today = new Date().toDateString();
         const lastReset = await AsyncStorage.getItem(STORAGE_KEYS.LAST_GOAL_RESET);
         
+        console.log('📅 Loading daily goals. Today:', today, 'Last reset:', lastReset);
+        
         if (lastReset === today) {
           // Load existing goals
           const savedGoals = await AsyncStorage.getItem(STORAGE_KEYS.DAILY_GOALS);
@@ -558,6 +567,7 @@ export const useLiveGameStore = create<LiveGameState>()(
             }));
             
             set({ dailyGoals: mergedGoals });
+            console.log('✅ Loaded existing daily goals:', mergedGoals.length);
             return;
           }
         }
@@ -571,10 +581,13 @@ export const useLiveGameStore = create<LiveGameState>()(
         await AsyncStorage.setItem(STORAGE_KEYS.LAST_GOAL_RESET, today);
         await AsyncStorage.setItem(STORAGE_KEYS.GOALS_PROGRESS, JSON.stringify({}));
         
+        console.log('✅ Generated new daily goals:', newGoals.length);
+        
       } catch (error) {
         console.error('Failed to load daily goals:', error);
         // Fallback to generated goals
-        set({ dailyGoals: generateDailyGoals() });
+        const fallbackGoals = generateDailyGoals();
+        set({ dailyGoals: fallbackGoals });
       }
     },
 
@@ -601,23 +614,27 @@ export const useLiveGameStore = create<LiveGameState>()(
     },
 
     refreshFromStorage: async () => {
+      console.log('🔄 Refreshing from storage...');
+      
       // Reload score data from EnhancedScoreService
       await EnhancedScoreService.loadSavedData();
       const scoreInfo = EnhancedScoreService.getScoreInfo();
       
       const scoreData: LiveScoreData = {
-        dailyScore: scoreInfo.dailyScore,
-        currentStreak: scoreInfo.currentStreak,
-        highestStreak: scoreInfo.highestStreak,
-        streakLevel: scoreInfo.streakLevel,
-        totalQuestions: scoreInfo.totalQuestions,
-        correctAnswers: scoreInfo.correctAnswers,
-        accuracy: scoreInfo.accuracy,
-        questionsToday: scoreInfo.questionsToday
+        dailyScore: scoreInfo.dailyScore || 0,
+        currentStreak: scoreInfo.currentStreak || 0,
+        highestStreak: scoreInfo.highestStreak || 0,
+        streakLevel: scoreInfo.streakLevel || 0,
+        totalQuestions: scoreInfo.totalQuestions || 0,
+        correctAnswers: scoreInfo.correctAnswers || 0,
+        accuracy: scoreInfo.accuracy || 0,
+        questionsToday: scoreInfo.questionsToday || 0
       };
       
       get().updateScoreData(scoreData);
       await get().updateDailyGoalProgress();
+      
+      console.log('✅ Refreshed data:', scoreData);
     },
 
     reset: async () => {

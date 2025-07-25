@@ -19,9 +19,11 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList, DailyGoal } from '../types';
 import theme from '../styles/theme';
 import SoundService from '../services/SoundService';
-// import EnhancedTimerService from '../services/EnhancedTimerService';
 import EnhancedScoreService from '../services/EnhancedScoreService';
 import EnhancedMascotDisplay from '../components/Mascot/EnhancedMascotDisplay';
+
+// ✅ LIVE STATE INTEGRATION
+import { useDailyGoalsIntegration } from '../hooks/useGameIntegration';
 
 type NavigationProp = StackNavigationProp<RootStackParamList, 'DailyGoals'>;
 type MascotType = 'happy' | 'sad' | 'excited' | 'depressed' | 'gamemode' | 'below';
@@ -135,10 +137,21 @@ const DAILY_GOALS_POOL: GoalTemplate[] = [
 
 const DailyGoalsScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
-  const [dailyGoals, setDailyGoals] = useState<GoalTemplate[]>([]);
-  const [goalsProgress, setGoalsProgress] = useState<Record<string, GoalProgress>>({});
+  
+  // ✅ LIVE STATE INTEGRATION - Replaces old state management
+  const { 
+    dailyGoals, 
+    animatingGoals, 
+    handleClaimReward, 
+    refreshProgress,
+    completedCount, 
+    claimedCount, 
+    totalRewards,
+    isInitialized 
+  } = useDailyGoalsIntegration();
+  
+  // Local UI state
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [lastResetDate, setLastResetDate] = useState<string | null>(null);
   
   // Mascot state
   const [mascotType, setMascotType] = useState<MascotType>('happy');
@@ -150,12 +163,7 @@ const DailyGoalsScreen: React.FC = () => {
   const slideAnims = useRef<Animated.Value[]>([]).current;
   const claimButtonAnims = useRef<Animated.Value[]>([]).current;
   
-  const STORAGE_KEY = '@BrainBites:dailyGoals';
-  const PROGRESS_KEY = '@BrainBites:dailyGoalsProgress';
-  
   useEffect(() => {
-    loadDailyGoals();
-    
     // Entrance animation
     Animated.timing(fadeAnim, {
       toValue: 1,
@@ -163,221 +171,78 @@ const DailyGoalsScreen: React.FC = () => {
       useNativeDriver: true,
     }).start();
     
-    // Listen for progress updates
-    const interval = setInterval(() => {
-      updateProgressFromStats();
-    }, 1000); // Check every second
-    
-    return () => clearInterval(interval);
-  }, []);
-  
-  const loadDailyGoals = async () => {
-    try {
-      // Check if we need to reset goals (new day)
-      const today = new Date().toDateString();
-      const savedGoalsData = await AsyncStorage.getItem(STORAGE_KEY);
-      const savedProgress = await AsyncStorage.getItem(PROGRESS_KEY);
-      
-      let goals: GoalTemplate[] = [];
-      let progress: Record<string, GoalProgress> = {};
-      
-      if (savedGoalsData) {
-        const data = JSON.parse(savedGoalsData);
-        if (data.date === today) {
-          // Same day, use saved goals
-          goals = data.goals;
-          progress = savedProgress ? JSON.parse(savedProgress) : {};
-        } else {
-          // New day, generate new goals
-          goals = generateDailyGoals();
-          await saveDailyGoals(goals, today);
-        }
-      } else {
-        // First time, generate goals
-        goals = generateDailyGoals();
-        await saveDailyGoals(goals, today);
+    // Initialize animations for goals
+    dailyGoals.forEach((_, index) => {
+      if (!slideAnims[index]) {
+        slideAnims[index] = new Animated.Value(50);
+        claimButtonAnims[index] = new Animated.Value(1);
       }
       
-      setDailyGoals(goals);
-      setGoalsProgress(progress);
-      setLastResetDate(today);
-      
-      // Animate goals entrance
-      goals.forEach((_, index) => {
-        if (!slideAnims[index]) {
-          slideAnims[index] = new Animated.Value(50);
-          claimButtonAnims[index] = new Animated.Value(1);
-        }
-        
-        Animated.timing(slideAnims[index], {
-          toValue: 0,
-          duration: 600,
-          delay: index * 100,
-          useNativeDriver: true,
-          easing: Easing.out(Easing.cubic),
-        }).start();
-      });
-      
-      // Update progress immediately
-      await updateProgressFromStats();
-      
-    } catch (error) {
-      console.error('Error loading daily goals:', error);
-    }
-  };
-  
-  const generateDailyGoals = (): GoalTemplate[] => {
-    // Randomly select 3 goals from the pool
-    const shuffled = [...DAILY_GOALS_POOL].sort(() => 0.5 - Math.random());
-    return shuffled.slice(0, 3);
-  };
-  
-  const saveDailyGoals = async (goals: GoalTemplate[], date: string) => {
-    try {
-      const data = { goals, date };
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-      await AsyncStorage.setItem(PROGRESS_KEY, JSON.stringify({}));
-    } catch (error) {
-      console.error('Error saving daily goals:', error);
-    }
-  };
-  
-  const saveProgress = async (progress: Record<string, GoalProgress>) => {
-    try {
-      await AsyncStorage.setItem(PROGRESS_KEY, JSON.stringify(progress));
-    } catch (error) {
-      console.error('Error saving progress:', error);
-    }
-  };
-  
-  const updateProgressFromStats = async () => {
-    // Get current stats from ScoreService
-    const scoreInfo = EnhancedScoreService.getScoreInfo();
-    const quizStats = await EnhancedScoreService.getTodayQuizStats();
-    
-    const newProgress: Record<string, GoalProgress> = { ...goalsProgress };
-    
-    dailyGoals.forEach(goal => {
-      switch (goal.type) {
-        case 'questions':
-          newProgress[goal.id] = {
-            current: quizStats.totalQuestions || 0,
-            target: goal.target as number,
-            completed: (quizStats.totalQuestions || 0) >= (goal.target as number),
-            claimed: newProgress[goal.id]?.claimed || false
-          };
-          break;
-          
-        case 'streak':
-          const highestStreak = Math.max(scoreInfo.currentStreak, scoreInfo.highestStreak || 0);
-          newProgress[goal.id] = {
-            current: highestStreak,
-            target: goal.target as number,
-            completed: highestStreak >= (goal.target as number),
-            claimed: newProgress[goal.id]?.claimed || false
-          };
-          break;
-          
-        case 'accuracy':
-          const accuracy = quizStats.totalQuestions >= (goal.minQuestions || 0)
-            ? Math.round((quizStats.correctAnswers / quizStats.totalQuestions) * 100)
-            : 0;
-          newProgress[goal.id] = {
-            current: accuracy,
-            questionsAnswered: quizStats.totalQuestions || 0,
-            target: goal.target as number,
-            completed: accuracy >= (goal.target as number) && quizStats.totalQuestions >= (goal.minQuestions || 0),
-            claimed: newProgress[goal.id]?.claimed || false
-          };
-          break;
-          
-        case 'difficulty':
-          const hardQuestions = quizStats.difficultyCounts?.hard || 0;
-          newProgress[goal.id] = {
-            current: hardQuestions,
-            target: goal.minQuestions || 0,
-            completed: hardQuestions >= (goal.minQuestions || 0),
-            claimed: newProgress[goal.id]?.claimed || false
-          };
-          break;
-          
-        case 'category':
-          const categoryQuestions = quizStats.categoryCounts?.[goal.target as string] || 0;
-          newProgress[goal.id] = {
-            current: categoryQuestions,
-            target: goal.minQuestions || 0,
-            completed: categoryQuestions >= (goal.minQuestions || 0),
-            claimed: newProgress[goal.id]?.claimed || false
-          };
-          break;
-          
-        case 'perfect':
-          const perfectStreak = scoreInfo.highestStreak || 0;
-          newProgress[goal.id] = {
-            current: perfectStreak,
-            target: goal.target as number,
-            completed: perfectStreak >= (goal.target as number),
-            claimed: newProgress[goal.id]?.claimed || false
-          };
-          break;
-      }
-    });
-    
-    setGoalsProgress(newProgress);
-    await saveProgress(newProgress);
-  };
-  
-  const handleClaimReward = async (goal: GoalTemplate, index: number) => {
-    const progress = goalsProgress[goal.id];
-    if (!progress?.completed || progress.claimed) return;
-    
-    // Play reward sound
-    SoundService.playStreak();
-    
-    // Animate claim button
-    Animated.sequence([
-      Animated.timing(claimButtonAnims[index], {
-        toValue: 1.2,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-      Animated.timing(claimButtonAnims[index], {
+      Animated.timing(slideAnims[index], {
         toValue: 0,
-        duration: 300,
+        duration: 600,
+        delay: index * 100,
         useNativeDriver: true,
-      }),
-    ]).start();
-    
-    // Add time reward
-    const rewardSeconds = goal.reward * 60;
-    // await EnhancedTimerService.addTimeCredits(rewardSeconds);
-    
-    // Update progress
-    const newProgress = {
-      ...goalsProgress,
-      [goal.id]: {
-        ...progress,
-        claimed: true
-      }
-    };
-    setGoalsProgress(newProgress);
-    await saveProgress(newProgress);
-    
-    // Show mascot celebration
-    setMascotType('excited');
-    setMascotMessage(`🎉 Amazing! You earned ${goal.reward} minutes!\n\nKeep completing goals to earn more time!`);
-    setShowMascot(true);
-  };
+        easing: Easing.out(Easing.cubic),
+      }).start();
+    });
+  }, [dailyGoals.length]);
   
+  // ✅ UPDATED REFRESH FUNCTION - Uses live state
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await updateProgressFromStats();
+    try {
+      await refreshProgress();
+    } catch (error) {
+      console.error('Failed to refresh goals:', error);
+    }
     setIsRefreshing(false);
   };
   
-  const renderGoalItem = (goal: GoalTemplate, index: number) => {
-    const progress = goalsProgress[goal.id] || { current: 0, target: goal.target as number, completed: false, claimed: false };
-    const progressPercentage = Math.min((progress.current / (progress.target || (goal.target as number))) * 100, 100);
+  // ✅ ENHANCED CLAIM HANDLER - Uses live state management
+  const handleClaimGoalReward = async (goalId: string, goalIndex: number) => {
+    try {
+      SoundService.playStreak();
+      
+      // Animate claim button
+      Animated.sequence([
+        Animated.timing(claimButtonAnims[goalIndex], {
+          toValue: 0.8,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+        Animated.timing(claimButtonAnims[goalIndex], {
+          toValue: 1.1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(claimButtonAnims[goalIndex], {
+          toValue: 1,
+          duration: 100,
+          useNativeDriver: true,
+        })
+      ]).start();
+      
+      // Use live state management
+      await handleClaimReward(goalId);
+      
+      // Show success mascot
+      setMascotType('excited');
+      setMascotMessage('Reward claimed! Great job! 🎉');
+      setShowMascot(true);
+      
+    } catch (error) {
+      console.error('Failed to claim reward:', error);
+      
+      // Show error mascot
+      setMascotType('sad');
+      setMascotMessage('Oops! Try again later. 😅');
+      setShowMascot(true);
+    }
+  };
+  
+  const renderGoalItem = (goal: any, index: number) => {
+    const progressPercentage = Math.min((goal.current / goal.target) * 100, 100);
     
     return (
       <Animated.View
@@ -420,55 +285,47 @@ const DailyGoalsScreen: React.FC = () => {
                 styles.progressFill,
                 {
                   width: `${progressPercentage}%`,
-                  backgroundColor: progress.completed ? '#4CAF50' : goal.color
+                  backgroundColor: goal.completed ? '#4CAF50' : goal.color
                 }
               ]}
             />
           </View>
           <Text style={styles.progressText}>
-            {goal.type === 'accuracy' && progress.questionsAnswered !== undefined
-              ? `${progress.current}% (${progress.questionsAnswered}/${goal.minQuestions} questions)`
-              : `${progress.current}/${progress.target || goal.target}`}
+            {goal.type === 'accuracy' && goal.questionsAnswered !== undefined
+              ? `${goal.current}% (${goal.questionsAnswered}/${goal.minQuestions} questions)`
+              : `${goal.current}/${goal.target}`}
           </Text>
         </View>
         
         {/* Claim Button */}
-        {progress.completed && (
+        {goal.completed && (
           <Animated.View
             style={{
               transform: [{ scale: claimButtonAnims[index] || 1 }],
-              opacity: progress.claimed ? 0.5 : 1
+              opacity: goal.claimed ? 0.5 : 1
             }}
           >
             <TouchableOpacity
               style={[
                 styles.claimButton,
-                progress.claimed && styles.claimedButton
+                goal.claimed && styles.claimedButton
               ]}
-              onPress={() => handleClaimReward(goal, index)}
-              disabled={progress.claimed}
+              onPress={() => handleClaimGoalReward(goal.id, index)}
+              disabled={goal.claimed}
             >
               <Icon 
-                name={progress.claimed ? "check-circle" : "gift-outline"} 
+                name={goal.claimed ? "check-circle" : "gift-outline"} 
                 size={20} 
                 color="white" 
               />
               <Text style={styles.claimButtonText}>
-                {progress.claimed ? 'Claimed' : 'Claim Reward'}
+                {goal.claimed ? 'Claimed' : 'Claim Reward'}
               </Text>
             </TouchableOpacity>
           </Animated.View>
         )}
       </Animated.View>
     );
-  };
-  
-  const getCompletedGoalsCount = () => {
-    return Object.values(goalsProgress).filter(p => p.completed).length;
-  };
-  
-  const getClaimedGoalsCount = () => {
-    return Object.values(goalsProgress).filter(p => p.claimed).length;
   };
   
   return (
@@ -499,22 +356,17 @@ const DailyGoalsScreen: React.FC = () => {
       >
         <View style={styles.summaryRow}>
           <View style={styles.summaryItem}>
-            <Text style={styles.summaryValue}>{getCompletedGoalsCount()}/3</Text>
+            <Text style={styles.summaryValue}>{completedCount}/3</Text>
             <Text style={styles.summaryLabel}>Completed</Text>
           </View>
           <View style={styles.summaryDivider} />
           <View style={styles.summaryItem}>
-            <Text style={styles.summaryValue}>{getClaimedGoalsCount()}/3</Text>
+            <Text style={styles.summaryValue}>{claimedCount}/3</Text>
             <Text style={styles.summaryLabel}>Claimed</Text>
           </View>
           <View style={styles.summaryDivider} />
           <View style={styles.summaryItem}>
-            <Text style={styles.summaryValue}>
-              {dailyGoals.reduce((sum, goal) => {
-                const progress = goalsProgress[goal.id];
-                return sum + (progress?.claimed ? goal.reward : 0);
-              }, 0)}m
-            </Text>
+            <Text style={styles.summaryValue}>{totalRewards}m</Text>
             <Text style={styles.summaryLabel}>Earned</Text>
           </View>
         </View>
@@ -602,7 +454,7 @@ const styles = StyleSheet.create({
     margin: 16,
     borderRadius: 16,
     padding: 20,
-    ...theme.shadows.md,
+    ...theme.shadows.medium,
   },
   summaryRow: {
     flexDirection: 'row',
@@ -642,7 +494,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
-    ...theme.shadows.md,
+    ...theme.shadows.medium,
   },
   goalHeader: {
     flexDirection: 'row',
@@ -714,7 +566,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 12,
     borderRadius: 24,
-    ...theme.shadows.btn,
+    ...theme.shadows.small,
   },
   claimedButton: {
     backgroundColor: '#4CAF50',

@@ -22,6 +22,9 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import SoundService from '../services/SoundService';
 import EnhancedScoreService from '../services/EnhancedScoreService';
 
+// ✅ LIVE STATE INTEGRATION
+import { useLeaderboardIntegration } from '../hooks/useGameIntegration';
+
 // Funny capybara-themed player names - expanded for more variety!
 const FAKE_NAMES = [
   'CapyBOSSa', 'CapyBALLER', 'HappyBara', 'CapyGOATa', 'CapyBrainiac',
@@ -157,11 +160,21 @@ interface LeaderboardEntry {
 
 const LeaderboardScreen = () => {
   const navigation = useNavigation();
+  
+  // ✅ LIVE STATE INTEGRATION - Real-time user stats
+  const { 
+    scoreData, 
+    userScore, 
+    userStreak, 
+    userAccuracy, 
+    refreshData,
+    isInitialized 
+  } = useLeaderboardIntegration();
+  
   const [activeTab, setActiveTab] = useState('global'); // 'global', 'friends'
   const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
   const [userRank, setUserRank] = useState<number | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [currentUserDailyScore, setCurrentUserDailyScore] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   
   // Animation values
@@ -171,7 +184,6 @@ const LeaderboardScreen = () => {
   
   useEffect(() => {
     console.log('🏆 [Modern LeaderboardScreen] Component mounted');
-    loadUserScore();
     
     // Animate entrance
     Animated.parallel([
@@ -205,68 +217,45 @@ const LeaderboardScreen = () => {
   }, []);
   
   useEffect(() => {
-    loadLeaderboardData();
-  }, [activeTab, currentUserDailyScore]);
-
-  // Also load leaderboard data when not loading anymore
-  useEffect(() => {
-    if (!isLoading) {
+    if (isInitialized) {
       loadLeaderboardData();
+      setIsLoading(false);
     }
-  }, [isLoading]);
+  }, [activeTab, userScore, isInitialized]);
 
   // Refresh leaderboard when screen comes into focus
   useFocusEffect(
     useCallback(() => {
       console.log('🏆 [Modern LeaderboardScreen] Screen focused, refreshing data');
-      loadUserScore();
+      refreshData();
     }, [])
   );
   
-  const loadUserScore = async () => {
-    try {
-      setIsLoading(true);
-      // Load real user score from EnhancedScoreService
-      await EnhancedScoreService.loadSavedData();
-      const scoreInfo = EnhancedScoreService.getScoreInfo();
-      const userScore = scoreInfo.dailyScore;
-      
-      setCurrentUserDailyScore(userScore);
-      console.log('📊 [Modern LeaderboardScreen] Loaded real user score:', userScore);
-    } catch (error) {
-      console.error('❌ [Modern LeaderboardScreen] Error loading user score:', error);
-      setCurrentUserDailyScore(0); // Fallback score
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
   const loadLeaderboardData = useCallback(() => {
-    console.log('🏆 [LeaderboardScreen] Loading leaderboard data for tab:', activeTab, 'with score:', currentUserDailyScore);
+    console.log('🏆 [LeaderboardScreen] Loading leaderboard data for tab:', activeTab, 'with score:', userScore);
     let fakeData: LeaderboardEntry[] = [];
     let userPosition = 0;
     
     switch (activeTab) {
       case 'global': {
         const top10 = generateTop10DailyScores();
-        const userRank = calculateUserRank(currentUserDailyScore);
+        const userRank = calculateUserRank(userScore);
         setUserRank(userRank);
         
         // Create user data object with real streak data
-        const scoreInfo = EnhancedScoreService.getScoreInfo();
         const userData = {
           id: 'current_user',
           rank: userRank,
           displayName: 'CaBBybara',
-          score: currentUserDailyScore,
-          highestStreak: scoreInfo.highestStreak,
+          score: userScore,
+          highestStreak: userStreak,
           isCurrentUser: true,
           lastActive: 'Online now',
         };
         
-        if (currentUserDailyScore > top10[9].score) {
+        if (userScore > top10[9].score) {
           // User is in top 10
-          const insertIndex = top10.findIndex(p => p.score < currentUserDailyScore);
+          const insertIndex = top10.findIndex(p => p.score < userScore);
           userData.rank = insertIndex + 1;
           top10.splice(insertIndex, 0, userData);
           top10.pop(); // Remove the last item to keep top 10
@@ -282,7 +271,7 @@ const LeaderboardScreen = () => {
           fakeData = [...top10];
           fakeData.push({ id: 'separator', isSeparator: true } as LeaderboardEntry);
           
-          const aroundUser = generateAroundUserScores(currentUserDailyScore, userRank);
+          const aroundUser = generateAroundUserScores(userScore, userRank);
           fakeData = fakeData.concat(aroundUser);
           
           // Insert user in the correct position among nearby players
@@ -307,12 +296,12 @@ const LeaderboardScreen = () => {
         const allFriendNames = [...friendNames, ...shuffledCapyNames];
         
         const friendScores = allFriendNames.map((name, i) => {
-          const variance = (Math.random() - 0.5) * currentUserDailyScore * 0.6; // More score variation
+          const variance = (Math.random() - 0.5) * userScore * 0.6; // More score variation
           return {
             id: `friend_${i}`,
             rank: 0,
             displayName: name,
-            score: Math.max(50, Math.floor(currentUserDailyScore + variance)),
+            score: Math.max(50, Math.floor(userScore + variance)),
             highestStreak: Math.floor(Math.random() * 30) + 2, // 2-32 streak variety
             isCurrentUser: false,
             lastActive: i < 4 ? 'Online now' : 
@@ -320,13 +309,13 @@ const LeaderboardScreen = () => {
                        `${Math.floor(Math.random() * 23) + 1}h ago`,
           };
         });
-        const scoreInfo = EnhancedScoreService.getScoreInfo();
+        
         friendScores.push({
           id: 'current_user',
           rank: 0,
           displayName: 'CaBBybara',
-          score: currentUserDailyScore,
-          highestStreak: scoreInfo.highestStreak,
+          score: userScore,
+          highestStreak: userStreak,
           isCurrentUser: true,
           lastActive: 'Online now',
         });
@@ -342,7 +331,7 @@ const LeaderboardScreen = () => {
     }
     console.log('🏆 [LeaderboardScreen] Generated leaderboard data:', fakeData.length, 'items');
     setLeaderboardData(fakeData);
-  }, [activeTab, currentUserDailyScore]);
+  }, [activeTab, userScore, userStreak]);
   
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -352,7 +341,7 @@ const LeaderboardScreen = () => {
     await new Promise<void>(resolve => setTimeout(() => resolve(), 1000));
     
     // Refresh user score first to get latest data
-    await loadUserScore();
+    await refreshData();
     
     // Then reload leaderboard with fresh character variety
     loadLeaderboardData();
@@ -484,14 +473,14 @@ const LeaderboardScreen = () => {
           <View style={styles.userCardRight}>
             <Text style={styles.userCardLabel}>Top {percentile}%</Text>
             <Text style={styles.userCardScore}>
-              {(currentUserDailyScore ?? 0).toLocaleString()}
+              {(userScore ?? 0).toLocaleString()}
             </Text>
             <Text style={styles.userCardSubtext}>points</Text>
           </View>
         </View>
       </Animated.View>
     );
-  }, [userRank, currentUserDailyScore, activeTab, fadeAnim, pulseAnim]);
+  }, [userRank, userScore, activeTab, fadeAnim, pulseAnim]);
   
   return (
     <SafeAreaView style={styles.container}>

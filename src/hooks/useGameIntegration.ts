@@ -1,5 +1,5 @@
 // src/hooks/useGameIntegration.ts
-// ✅ INTEGRATION HOOKS - Game Event System for Parts 2 & 3
+// ✅ FIXED INTEGRATION HOOKS - Working with existing screens
 import { useEffect, useRef, useCallback } from 'react';
 import { useLiveGameStore, useGameEvents, GameEvent } from '../store/useLiveGameStore';
 import EnhancedScoreService from '../services/EnhancedScoreService';
@@ -58,6 +58,7 @@ export const useGameIntegration = (callbacks?: GameIntegrationCallbacks) => {
   // Initialize store on mount
   useEffect(() => {
     if (!isInitialized) {
+      console.log('🚀 Initializing game integration...');
       initialize();
     }
   }, [isInitialized, initialize]);
@@ -126,6 +127,8 @@ export const useGameIntegration = (callbacks?: GameIntegrationCallbacks) => {
   // Main quiz completion handler
   const handleQuizCompletion = useCallback(async (data: QuizCompletionData) => {
     try {
+      console.log('🎯 Handling quiz completion:', data);
+      
       // Process answer through EnhancedScoreService (maintains compatibility)
       const result = await EnhancedScoreService.processAnswer(
         data.isCorrect,
@@ -135,6 +138,8 @@ export const useGameIntegration = (callbacks?: GameIntegrationCallbacks) => {
           category: data.category
         }
       );
+      
+      console.log('📊 Score service result:', result);
       
       // Calculate time earned (this will integrate with timer service in Part 3)
       let timeEarned = 0;
@@ -166,12 +171,12 @@ export const useGameIntegration = (callbacks?: GameIntegrationCallbacks) => {
       
       // Play appropriate sound
       if (data.isCorrect) {
-        SoundService.playSound('correct');
+        SoundService.playCorrect();
         if (result.isMilestone) {
-          SoundService.playSound('levelUp');
+          SoundService.playStreak();
         }
       } else {
-        SoundService.playSound('incorrect');
+        SoundService.playIncorrect();
       }
       
       return {
@@ -200,11 +205,11 @@ export const useGameIntegration = (callbacks?: GameIntegrationCallbacks) => {
 export const useQuizIntegration = () => {
   const integration = useGameIntegration({
     onQuizCompleted: (data) => {
-      console.log('Quiz completed:', data);
+      console.log('Quiz completed:', data.newScore, 'streak:', data.newStreak);
     },
     onStreakMilestone: (data) => {
       console.log('Streak milestone:', data.streak);
-      SoundService.playSound('streakStart');
+      SoundService.playStreak();
     }
   });
   
@@ -218,6 +223,15 @@ export const useHomeIntegration = () => {
   const scoreData = useLiveGameStore(state => state.scoreData);
   const dailyGoals = useLiveGameStore(state => state.dailyGoals);
   const refreshFromStorage = useLiveGameStore(state => state.refreshFromStorage);
+  const isInitialized = useLiveGameStore(state => state.isInitialized);
+  const initialize = useLiveGameStore(state => state.initialize);
+  
+  // Auto-initialize on first use
+  useEffect(() => {
+    if (!isInitialized) {
+      initialize();
+    }
+  }, [isInitialized, initialize]);
   
   const integration = useGameIntegration({
     onScoreUpdate: (data) => {
@@ -228,7 +242,7 @@ export const useHomeIntegration = () => {
     },
     onDailyGoalCompleted: (data) => {
       console.log(`Goal completed: ${data.title} (+${data.timeBonus}s)`);
-      SoundService.playSound('goalComplete');
+      SoundService.playStreak();
     }
   });
   
@@ -254,6 +268,15 @@ export const useDailyGoalsIntegration = () => {
   const animatingGoals = useLiveGameStore(state => state.animatingGoals);
   const claimGoalReward = useLiveGameStore(state => state.claimGoalReward);
   const updateDailyGoalProgress = useLiveGameStore(state => state.updateDailyGoalProgress);
+  const isInitialized = useLiveGameStore(state => state.isInitialized);
+  const initialize = useLiveGameStore(state => state.initialize);
+  
+  // Auto-initialize on first use
+  useEffect(() => {
+    if (!isInitialized) {
+      initialize();
+    }
+  }, [isInitialized, initialize]);
   
   const integration = useGameIntegration({
     onDailyGoalCompleted: (data) => {
@@ -268,7 +291,7 @@ export const useDailyGoalsIntegration = () => {
   const handleClaimReward = useCallback(async (goalId: string) => {
     try {
       await claimGoalReward(goalId);
-      SoundService.playSound('goalComplete');
+      SoundService.playStreak();
     } catch (error) {
       console.error('Failed to claim reward:', error);
     }
@@ -296,6 +319,15 @@ export const useDailyGoalsIntegration = () => {
 export const useLeaderboardIntegration = () => {
   const scoreData = useLiveGameStore(state => state.scoreData);
   const refreshFromStorage = useLiveGameStore(state => state.refreshFromStorage);
+  const isInitialized = useLiveGameStore(state => state.isInitialized);
+  const initialize = useLiveGameStore(state => state.initialize);
+  
+  // Auto-initialize on first use
+  useEffect(() => {
+    if (!isInitialized) {
+      initialize();
+    }
+  }, [isInitialized, initialize]);
   
   const integration = useGameIntegration({
     onScoreUpdate: (data) => {

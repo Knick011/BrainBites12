@@ -12,6 +12,7 @@ import {
   StatusBar,
   Dimensions,
   Easing,
+  RefreshControl,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import LinearGradient from 'react-native-linear-gradient';
@@ -20,11 +21,14 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../types';
 import theme from '../styles/theme';
 import SoundService from '../services/SoundService';
-// import EnhancedTimerService from '../services/EnhancedTimerService';
 import EnhancedScoreService from '../services/EnhancedScoreService';
 import EnhancedMascotDisplay from '../components/Mascot/EnhancedMascotDisplay';
 import ScoreDisplay from '../components/common/ScoreDisplay';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// ✅ LIVE STATE INTEGRATION
+import { useHomeIntegration } from '../hooks/useGameIntegration';
+import { useLiveScore } from '../store/useLiveGameStore';
 
 const { width } = Dimensions.get('window');
 
@@ -70,21 +74,31 @@ const DIFFICULTY_BUTTONS: DifficultyButton[] = [
 const HomeScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   
-  const [state, setState] = useState({
-    remainingTime: 0,
-    isTimerRunning: false,
-    debtTime: 0,
-    scoreInfo: {
-      dailyScore: 0,
-      currentStreak: 0,
-      highestStreak: 0,
-      questionsToday: 0,
-      accuracy: 0,
-    },
-    isLoading: true,
-    dailyStreak: 0,
-    lastPlayedDate: null as string | null,
-  });
+  // ✅ LIVE STATE INTEGRATION - Replaces old state management
+  const { 
+    scoreData, 
+    dailyGoals, 
+    refreshData, 
+    completedGoalsCount, 
+    totalGoals,
+    isInitialized 
+  } = useHomeIntegration();
+  
+  // ✅ LIVE SCORE DATA - Real-time updates
+  const { 
+    dailyScore, 
+    currentStreak, 
+    highestStreak, 
+    accuracy, 
+    questionsToday,
+    animatingScore, 
+    animatingStreak 
+  } = useLiveScore();
+  
+  // Keep existing local state for UI
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [dailyStreak, setDailyStreak] = useState(0);
+  const [lastPlayedDate, setLastPlayedDate] = useState<string | null>(null);
   
   const [mascotType, setMascotType] = useState<MascotType>('happy');
   const [mascotMessage, setMascotMessage] = useState('');
@@ -94,12 +108,10 @@ const HomeScreen: React.FC = () => {
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
   const buttonAnims = useRef(DIFFICULTY_BUTTONS.map(() => new Animated.Value(0))).current;
   
-  const timerUnsubscribe = useRef<(() => void) | null>(null);
-  
   // Refresh data when screen comes into focus
   useFocusEffect(
     React.useCallback(() => {
-      refreshData();
+      handleRefresh();
     }, [])
   );
   
@@ -130,57 +142,36 @@ const HomeScreen: React.FC = () => {
         easing: Easing.out(Easing.back(1.2)),
       }).start();
     });
-    
-    return () => {
-      if (timerUnsubscribe.current) {
-        timerUnsubscribe.current();
-      }
-    };
   }, []);
   
   const initializeHome = async () => {
     try {
-      // await EnhancedTimerService.initialize();
-      await EnhancedScoreService.loadSavedData();
-      
-      const info = EnhancedScoreService.getScoreInfo();
+      // Load daily streak data (keep existing logic)
       const streak = await loadDailyStreak();
-      
-      setState(prev => ({ 
-        ...prev, 
-        scoreInfo: info,
-        dailyStreak: streak.streak,
-        lastPlayedDate: streak.lastDate
-      }));
-      
-      // timerUnsubscribe.current = EnhancedTimerService.subscribe((data) => {
-      //   setState(prev => ({
-      //     ...prev,
-      //     remainingTime: data.remainingTime,
-      //     isTimerRunning: data.isTracking,
-      //     debtTime: data.debtTime,
-      //   }));
-      // });
+      setDailyStreak(streak.streak);
+      setLastPlayedDate(streak.lastDate);
       
       SoundService.startMenuMusic();
       
-      setState(prev => ({ ...prev, isLoading: false }));
+      // ✅ Live state automatically initializes and loads
+      
     } catch (error) {
       console.error('Failed to initialize home:', error);
-      setState(prev => ({ ...prev, isLoading: false }));
     }
   };
   
-  const refreshData = async () => {
-    const info = EnhancedScoreService.getScoreInfo();
-    const streak = await loadDailyStreak();
-    
-    setState(prev => ({ 
-      ...prev, 
-      scoreInfo: info,
-      dailyStreak: streak.streak,
-      lastPlayedDate: streak.lastDate
-    }));
+  // ✅ UPDATED REFRESH FUNCTION - Uses live state
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await refreshData(); // Live state refresh
+      const streak = await loadDailyStreak();
+      setDailyStreak(streak.streak);
+      setLastPlayedDate(streak.lastDate);
+    } catch (error) {
+      console.error('Failed to refresh data:', error);
+    }
+    setIsRefreshing(false);
   };
   
   const loadDailyStreak = async () => {
@@ -234,22 +225,20 @@ const HomeScreen: React.FC = () => {
   };
   
   const handlePeekingMascotPress = () => {
-    // const formattedTime = EnhancedTimerService.formatTime(state.remainingTime);
-    const formattedTime = `${Math.floor(state.remainingTime / 60)}m ${state.remainingTime % 60}s`;
     let message = '';
     
-    if (state.debtTime > 0) {
-      // const penalty = EnhancedTimerService.getDebtPenalty();
-      const penalty = Math.floor(state.debtTime * 0.1); // Fallback penalty calculation
-      // message = `⏰ Timer Status\n\nTime Debt: -${EnhancedTimerService.formatTime(-state.debtTime)}\nPoint Penalty: -${penalty} points\n\nComplete quizzes to earn time!`;
-      message = `⏰ Timer Status\n\nTime Debt: -${Math.floor(-state.debtTime / 60)}m ${-state.debtTime % 60}s\nPoint Penalty: -${penalty} points\n\nComplete quizzes to earn time!`;
-      setMascotType('sad');
-    } else if (state.remainingTime > 0) {
-      message = `⏰ Timer Status\n\nRemaining Time: ${formattedTime}\nTimer: ${state.isTimerRunning ? 'Running' : 'Paused'}\n\nKeep going, you're doing great!`;
+    if (currentStreak >= 5) {
+      message = `🔥 Amazing Streak! 🔥\n\nYou're on a ${currentStreak} question streak!\nKeep it up, you're unstoppable!`;
+      setMascotType('excited');
+    } else if (questionsToday >= 10) {
+      message = `🎯 Great Progress! 🎯\n\nYou've answered ${questionsToday} questions today!\nAccuracy: ${accuracy}%`;
       setMascotType('happy');
+    } else if (dailyScore > 0) {
+      message = `💪 Keep Going! 💪\n\nDaily Score: ${dailyScore.toLocaleString()}\nQuestions: ${questionsToday}\n\nYou're doing great!`;
+      setMascotType('gamemode');
     } else {
-      message = `⏰ Timer Status\n\nNo time remaining!\n\nComplete quizzes to earn more time!`;
-      setMascotType('sad');
+      message = `🧠 Ready to Start? 🧠\n\nLet's boost your brain power!\nChoose a difficulty and begin!`;
+      setMascotType('happy');
     }
     
     setMascotMessage(message);
@@ -266,12 +255,12 @@ const HomeScreen: React.FC = () => {
         <View style={styles.streakHeader}>
           <Icon name="fire" size={24} color="#FF9F1C" />
           <Text style={styles.streakTitle}>Daily Streak</Text>
-          <Text style={styles.streakCount}>{state.dailyStreak} days</Text>
+          <Text style={styles.streakCount}>{dailyStreak} days</Text>
         </View>
         <View style={styles.streakDays}>
           {days.map((day, index) => {
             const isToday = index === mondayFirst[0];
-            const isCompleted = state.lastPlayedDate === new Date().toDateString() && isToday;
+            const isCompleted = lastPlayedDate === new Date().toDateString() && isToday;
             const isPast = index < mondayFirst[0];
             
             return (
@@ -281,7 +270,7 @@ const HomeScreen: React.FC = () => {
                   styles.streakDay,
                   isCompleted && styles.streakDayCompleted,
                   isToday && styles.streakDayToday,
-                  isPast && state.dailyStreak > 0 && styles.streakDayPast
+                  isPast && dailyStreak > 0 && styles.streakDayPast
                 ]}>
                   {isCompleted && <Icon name="check" size={16} color="white" />}
                 </View>
@@ -293,16 +282,6 @@ const HomeScreen: React.FC = () => {
     );
   };
   
-  if (state.isLoading) {
-    return (
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Loading...</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
-  
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar backgroundColor="#FFF8E7" barStyle="dark-content" />
@@ -310,10 +289,18 @@ const HomeScreen: React.FC = () => {
         style={styles.container}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            colors={[theme.colors.primary]}
+            tintColor={theme.colors.primary}
+          />
+        }
       >
         <Animated.View style={[styles.header, { opacity: fadeAnim }]}>
           <Text style={styles.headerTitle}>Brain Bites</Text>
-          <ScoreDisplay score={state.scoreInfo.dailyScore} />
+          <ScoreDisplay score={dailyScore} />
         </Animated.View>
         
         {/* Streak Flow */}
@@ -424,17 +411,17 @@ const HomeScreen: React.FC = () => {
           <View style={styles.statsGrid}>
             <View style={styles.statItem}>
               <Icon name="help-circle-outline" size={24} color="#4CAF50" />
-              <Text style={styles.statValue}>{state.scoreInfo.questionsToday || 0}</Text>
+              <Text style={styles.statValue}>{questionsToday || 0}</Text>
               <Text style={styles.statLabel}>Questions</Text>
             </View>
             <View style={styles.statItem}>
               <Icon name="percent" size={24} color="#2196F3" />
-              <Text style={styles.statValue}>{Math.round(state.scoreInfo.accuracy || 0)}%</Text>
+              <Text style={styles.statValue}>{Math.round(accuracy || 0)}%</Text>
               <Text style={styles.statLabel}>Accuracy</Text>
             </View>
             <View style={styles.statItem}>
               <Icon name="star" size={24} color="#FF9F1C" />
-              <Text style={styles.statValue}>{state.scoreInfo.dailyScore || 0}</Text>
+              <Text style={styles.statValue}>{dailyScore || 0}</Text>
               <Text style={styles.statLabel}>Points</Text>
             </View>
           </View>

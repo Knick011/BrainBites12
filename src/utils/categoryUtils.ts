@@ -17,17 +17,15 @@ export interface CategoryInfo {
 export const extractCategoriesFromData = (): CategoryInfo[] => {
   const categoryMap = new Map<string, number>();
   
-  // Count questions per category with safety checks
   questions.forEach(question => {
     if (question && question.category && typeof question.category === 'string') {
       const category = question.category.toLowerCase().trim();
-      if (category) { // Only process non-empty categories
+      if (category) {
         categoryMap.set(category, (categoryMap.get(category) || 0) + 1);
       }
     }
   });
 
-  // Convert to CategoryInfo array with icons and colors
   const categories: CategoryInfo[] = [];
   
   categoryMap.forEach((count, categoryId) => {
@@ -43,7 +41,6 @@ export const extractCategoriesFromData = (): CategoryInfo[] => {
     });
   });
 
-  // Sort by question count (descending) then by name
   return categories.sort((a, b) => {
     if (b.questionCount !== a.questionCount) {
       return b.questionCount - a.questionCount;
@@ -54,82 +51,144 @@ export const extractCategoriesFromData = (): CategoryInfo[] => {
 
 // Get display information for a category
 const getCategoryDisplayInfo = (categoryId: string) => {
-  // Safety check for categoryId
   if (!categoryId || typeof categoryId !== 'string') {
     return {
       displayName: 'Unknown',
-      icon: 'help-circle',
+      icon: 'brain-circuit',
       color: '#9E9E9E',
       gradient: ['#BDBDBD', '#9E9E9E', '#757575']
     };
   }
+
   const categoryMappings: Record<string, { displayName: string; icon: string; color: string; gradient: string[] }> = {
     'science': {
-      displayName: 'Science',
-      icon: 'flask',
+      displayName: 'Science & Discovery',
+      icon: 'flask-outline',
       color: '#4CAF50',
-      gradient: ['#81C784', '#66BB6A', '#4CAF50']
+      gradient: ['#A5D6A7', '#66BB6A', '#43A047']
+    },
+    'biology': {
+      displayName: 'Biology & Life',
+      icon: 'dna',
+      color: '#009688',
+      gradient: ['#80CBC4', '#26A69A', '#00897B']
+    },
+    'chemistry': {
+      displayName: 'Chemistry Lab',
+      icon: 'atom-variant',
+      color: '#00BCD4',
+      gradient: ['#80DEEA', '#26C6DA', '#00ACC1']
+    },
+    'physics': {
+      displayName: 'Physics & Space',
+      icon: 'rocket-launch-outline',
+      color: '#3F51B5',
+      gradient: ['#9FA8DA', '#5C6BC0', '#3949AB']
     },
     'history': {
-      displayName: 'History',
-      icon: 'castle',
-      color: '#8D6E63',
-      gradient: ['#A1887F', '#8D6E63', '#795548']
+      displayName: 'Time Travel History',
+      icon: 'clock-time-eight-outline',
+      color: '#795548',
+      gradient: ['#BCAAA4', '#8D6E63', '#6D4C41']
     },
     'geography': {
-      displayName: 'Geography',
+      displayName: 'World Explorer',
       icon: 'earth',
       color: '#2196F3',
-      gradient: ['#64B5F6', '#42A5F5', '#2196F3']
+      gradient: ['#90CAF9', '#42A5F5', '#1E88E5']
     },
     'literature': {
-      displayName: 'Literature',
-      icon: 'book-open-variant',
+      displayName: 'Literary Adventures',
+      icon: 'book-open-page-variant-outline',
       color: '#9C27B0',
-      gradient: ['#BA68C8', '#AB47BC', '#9C27B0']
+      gradient: ['#CE93D8', '#AB47BC', '#8E24AA']
     },
     'arts': {
-      displayName: 'Arts',
-      icon: 'palette',
+      displayName: 'Creative Arts',
+      icon: 'palette-outline',
       color: '#E91E63',
-      gradient: ['#F06292', '#EC407A', '#E91E63']
+      gradient: ['#F48FB1', '#EC407A', '#D81B60']
+    },
+    'music': {
+      displayName: 'Musical Journey',
+      icon: 'music-note',
+      color: '#FF4081',
+      gradient: ['#FF80AB', '#FF4081', '#F50057']
     },
     'sports': {
-      displayName: 'Sports',
-      icon: 'soccer',
+      displayName: 'Sports Challenge',
+      icon: 'trophy-outline',
       color: '#FF5722',
-      gradient: ['#FF8A65', '#FF7043', '#FF5722']
+      gradient: ['#FFAB91', '#FF7043', '#F4511E']
     },
     'entertainment': {
-      displayName: 'Entertainment',
-      icon: 'movie-open',
+      displayName: 'Pop Culture Fun',
+      icon: 'movie-open-star-outline',
       color: '#FF9800',
-      gradient: ['#FFB74D', '#FFA726', '#FF9800']
+      gradient: ['#FFB74D', '#FFA726', '#FB8C00']
     },
     'technology': {
-      displayName: 'Technology',
+      displayName: 'Tech Wizardry',
       icon: 'laptop',
       color: '#607D8B',
-      gradient: ['#90A4AE', '#78909C', '#607D8B']
+      gradient: ['#90A4AE', '#78909C', '#546E7A']
+    },
+    'computers': {
+      displayName: 'Computer Science',
+      icon: 'code-tags',
+      color: '#455A64',
+      gradient: ['#90A4AE', '#607D8B', '#455A64']
     },
     'mathematics': {
-      displayName: 'Mathematics',
-      icon: 'calculator',
+      displayName: 'Math Magic',
+      icon: 'function-variant',
       color: '#3F51B5',
-      gradient: ['#7986CB', '#5C6BC0', '#3F51B5']
+      gradient: ['#9FA8DA', '#5C6BC0', '#3949AB']
     },
     'general': {
-      displayName: 'General Knowledge',
-      icon: 'lightbulb',
+      displayName: 'Brain Teasers',
+      icon: 'lightbulb-outline',
       color: '#FFC107',
-      gradient: ['#FFD54F', '#FFCA28', '#FFC107']
+      gradient: ['#FFE082', '#FFD54F', '#FFC107']
+    },
+    'food': {
+      displayName: 'Food & Cuisine',
+      icon: 'food-fork-drink',
+      color: '#FF5252',
+      gradient: ['#FF8A80', '#FF5252', '#FF1744']
+    },
+    'nature': {
+      displayName: 'Nature & Wildlife',
+      icon: 'leaf',
+      color: '#8BC34A',
+      gradient: ['#C5E1A5', '#9CCC65', '#7CB342']
+    },
+    'space': {
+      displayName: 'Space Explorer',
+      icon: 'space-station',
+      color: '#673AB7',
+      gradient: ['#B39DDB', '#7E57C2', '#5E35B1']
+    },
+    'mythology': {
+      displayName: 'Mythical Realms',
+      icon: 'shield-sun',
+      color: '#FF6D00',
+      gradient: ['#FFB74D', '#FF9800', '#F57C00']
+    },
+    'language': {
+      displayName: 'Language Master',
+      icon: 'translate',
+      color: '#00BCD4',
+      gradient: ['#80DEEA', '#26C6DA', '#00ACC1']
     }
   };
 
-  // Get mapping or create default
+  // Get mapping or create default with fun icon
   const mapping = categoryMappings[categoryId] || {
-    displayName: categoryId.charAt(0).toUpperCase() + categoryId.slice(1),
-    icon: 'help-circle',
+    displayName: categoryId.split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' '),
+    icon: 'brain-circuit',
     color: '#9E9E9E',
     gradient: ['#BDBDBD', '#9E9E9E', '#757575']
   };
@@ -143,7 +202,7 @@ export const getAvailableCategories = (): CategoryInfo[] => {
     return extractCategoriesFromData();
   } catch (error) {
     console.error('❌ [CategoryUtils] Error extracting categories:', error);
-    return []; // Return empty array as fallback
+    return [];
   }
 };
 

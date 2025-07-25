@@ -1,6 +1,4 @@
 // src/screens/CategoriesScreen.tsx
-// ✅ UPDATED: Now uses real categories from questionsData.ts with actual question counts
-// ✅ UPDATED: Modern grid layout with CategoryCard component
 import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
@@ -11,7 +9,8 @@ import {
   FlatList,
   Animated,
   Platform,
-  ActivityIndicator
+  ActivityIndicator,
+  Dimensions
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
@@ -20,7 +19,9 @@ import { RootStackParamList } from '../types';
 import theme from '../styles/theme';
 import SoundService from '../services/SoundService';
 import CategoryCard from '../components/CategoryCard';
+import PeekingMascot from '../components/Mascot/PeekingMascot';
 import { getAvailableCategories, CategoryInfo, getTotalQuestionsCount } from '../utils/categoryUtils';
+import LinearGradient from 'react-native-linear-gradient';
 
 type NavigationProp = StackNavigationProp<RootStackParamList, 'Categories'>;
 
@@ -33,6 +34,8 @@ const CategoriesScreen: React.FC = () => {
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const cardAnims = useRef<Animated.Value[]>([]);
+  const mascotAnim = useRef(new Animated.Value(0)).current;
+  const headerAnim = useRef(new Animated.Value(0)).current;
   
   useEffect(() => {
     loadCategories();
@@ -42,26 +45,20 @@ const CategoriesScreen: React.FC = () => {
     try {
       setIsLoading(true);
       
-      // Get categories from real data
       const availableCategories = getAvailableCategories();
       const totalCount = getTotalQuestionsCount();
       
       setCategories(availableCategories || []);
       setTotalQuestions(totalCount || 0);
       
-      // Initialize animation values for each category
       cardAnims.current = (availableCategories || []).map(() => new Animated.Value(0));
       
-      console.log('📚 [CategoriesScreen] Loaded categories:', (availableCategories || []).length);
-      
-      // Start animations only if we have categories
       if (availableCategories && availableCategories.length > 0) {
         startAnimations();
       }
       
     } catch (error) {
       console.error('❌ [CategoriesScreen] Error loading categories:', error);
-      // Set fallback empty state
       setCategories([]);
       setTotalQuestions(0);
     } finally {
@@ -70,18 +67,27 @@ const CategoriesScreen: React.FC = () => {
   };
 
   const startAnimations = () => {
-    // Animate entrance
-    Animated.timing(fadeAnim, {
+    // Animate header
+    Animated.timing(headerAnim, {
       toValue: 1,
-      duration: 500,
+      duration: 800,
+      useNativeDriver: true,
+    }).start();
+
+    // Animate mascot
+    Animated.spring(mascotAnim, {
+      toValue: 1,
+      tension: 50,
+      friction: 7,
       useNativeDriver: true,
     }).start();
     
-    // Stagger card animations
+    // Animate cards with stagger
     const animations = cardAnims.current.map((anim, index) => 
-      Animated.timing(anim, {
+      Animated.spring(anim, {
         toValue: 1,
-        duration: 500,
+        tension: 50,
+        friction: 7,
         delay: index * 100,
         useNativeDriver: true,
       })
@@ -113,50 +119,82 @@ const CategoriesScreen: React.FC = () => {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF9F1C" />
-          <Text style={styles.loadingText}>Loading categories...</Text>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <Text style={styles.loadingText}>Loading your brain food...</Text>
         </View>
       </SafeAreaView>
     );
   }
 
+  const headerTranslateY = headerAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-50, 0],
+  });
+
+  const mascotTranslateX = mascotAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [100, 0],
+  });
+
   return (
     <SafeAreaView style={styles.container}>
-      <Animated.View 
-        style={[
-          styles.header,
-          { opacity: fadeAnim }
-        ]}
+      <LinearGradient
+        colors={['#FFE5D9', '#FFF', '#FFF']}
+        style={styles.gradient}
       >
-        <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-          <Icon name="arrow-left" size={24} color="#333" />
-        </TouchableOpacity>
-        <View style={styles.headerTitleContainer}>
-          <Text style={styles.headerTitle}>Choose a Category</Text>
-          <Text style={styles.headerSubtitle}>
-            {totalQuestions} total questions available
-          </Text>
-        </View>
-        <View style={{ width: 40 }} />
-      </Animated.View>
-      
-      {categories.length > 0 ? (
-        <FlatList
-          data={categories}
-          renderItem={renderCategoryCard}
-          keyExtractor={(item) => item.id}
-          numColumns={2}
-          contentContainerStyle={styles.gridContainer}
-          showsVerticalScrollIndicator={false}
-          columnWrapperStyle={styles.row}
-        />
-      ) : (
-        <View style={styles.emptyContainer}>
-          <Icon name="help-circle" size={48} color="#ccc" />
-          <Text style={styles.emptyText}>No categories available</Text>
-          <Text style={styles.emptySubtext}>Please check your questions data</Text>
-        </View>
-      )}
+        <Animated.View 
+          style={[
+            styles.header,
+            { 
+              opacity: headerAnim,
+              transform: [{ translateY: headerTranslateY }]
+            }
+          ]}
+        >
+          <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+            <Icon name="arrow-left" size={24} color={theme.colors.textPrimary} />
+          </TouchableOpacity>
+          <View style={styles.headerTitleContainer}>
+            <Text style={styles.headerTitle}>Choose Your Challenge!</Text>
+            <View style={styles.statsContainer}>
+              <Icon name="brain" size={16} color={theme.colors.primary} />
+              <Text style={styles.headerSubtitle}>
+                {totalQuestions} brain-tickling questions
+              </Text>
+            </View>
+          </View>
+          <View style={{ width: 40 }} />
+        </Animated.View>
+
+        <Animated.View 
+          style={[
+            styles.mascotContainer,
+            {
+              transform: [{ translateX: mascotTranslateX }]
+            }
+          ]}
+        >
+          <PeekingMascot mood="excited" size={100} />
+        </Animated.View>
+        
+        {categories.length > 0 ? (
+          <FlatList
+            data={categories}
+            renderItem={renderCategoryCard}
+            keyExtractor={(item) => item.id}
+            numColumns={2}
+            contentContainerStyle={styles.gridContainer}
+            showsVerticalScrollIndicator={false}
+            columnWrapperStyle={styles.row}
+          />
+        ) : (
+          <View style={styles.emptyContainer}>
+            <Icon name="brain" size={48} color="#ccc" />
+            <Text style={styles.emptyText}>No categories available</Text>
+            <Text style={styles.emptySubtext}>Time to feed your brain!</Text>
+          </View>
+        )}
+      </LinearGradient>
     </SafeAreaView>
   );
 };
@@ -166,52 +204,71 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.background,
   },
+  gradient: {
+    flex: 1,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    backgroundColor: 'transparent',
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
     justifyContent: 'center',
     alignItems: 'center',
+    ...theme.shadows.small,
   },
   headerTitleContainer: {
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
-    color: '#333',
+    color: theme.colors.textPrimary,
     fontFamily: Platform.OS === 'ios' ? 'Avenir-Heavy' : 'sans-serif-medium',
+    marginBottom: 4,
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 159, 28, 0.1)',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
   headerSubtitle: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 2,
+    fontSize: 14,
+    color: theme.colors.primary,
+    marginLeft: 6,
     fontFamily: Platform.OS === 'ios' ? 'Avenir' : 'sans-serif',
+  },
+  mascotContainer: {
+    position: 'absolute',
+    top: 100,
+    right: 0,
+    zIndex: 10,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#FFF',
   },
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: '#666',
+    color: theme.colors.textSecondary,
     fontFamily: Platform.OS === 'ios' ? 'Avenir' : 'sans-serif',
   },
   gridContainer: {
-    padding: 8,
+    padding: 12,
+    paddingTop: 20,
   },
   row: {
     justifyContent: 'space-around',
@@ -223,15 +280,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
   },
   emptyText: {
-    fontSize: 18,
-    color: '#666',
+    fontSize: 20,
+    color: theme.colors.textSecondary,
     marginTop: 16,
     textAlign: 'center',
     fontFamily: Platform.OS === 'ios' ? 'Avenir-Medium' : 'sans-serif-medium',
   },
   emptySubtext: {
-    fontSize: 14,
-    color: '#999',
+    fontSize: 16,
+    color: theme.colors.textLight,
     marginTop: 8,
     textAlign: 'center',
     fontFamily: Platform.OS === 'ios' ? 'Avenir' : 'sans-serif',

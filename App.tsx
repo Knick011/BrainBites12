@@ -6,7 +6,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import { StatusBar, Platform, Alert, AppState } from 'react-native';
+import { StatusBar, Platform, Alert, AppState, View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import SoundService from './src/services/SoundService';
 import QuestionService from './src/services/QuestionService';
 import ErrorBoundary from './src/components/common/ErrorBoundary';
@@ -202,60 +203,56 @@ const App: React.FC = () => {
 
   return (
     <ErrorBoundary>
-      <NavigationContainer>
-        <StatusBar 
-          barStyle={Platform.OS === 'ios' ? 'dark-content' : 'light-content'}
-          backgroundColor="#FFD700"
-        />
-        <Stack.Navigator
-          initialRouteName="Welcome"
-          screenOptions={{
-            headerStyle: {
-              backgroundColor: '#FFD700',
-            },
-            headerTintColor: '#333',
-            headerTitleStyle: {
-              fontWeight: 'bold',
-            },
-          }}
-        >
-          <Stack.Screen 
-            name="Welcome" 
-            component={WelcomeScreen}
-            options={{ headerShown: false }}
+      <SafeAreaProvider>
+        <View style={{ flex: 1, backgroundColor: '#FFF8E7' }}>
+          <StatusBar 
+            barStyle="dark-content"
+            backgroundColor="#FFF8E7"
           />
-          <Stack.Screen 
-            name="Home" 
-            component={HomeScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen 
-            name="Categories" 
-            component={CategoriesScreen}
-            options={{ title: 'Categories' }}
-          />
-          <Stack.Screen 
-            name="Quiz" 
-            component={QuizScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen 
-            name="Leaderboard" 
-            component={LeaderboardScreen}
-            options={{ title: 'Leaderboard' }}
-          />
-          <Stack.Screen 
-            name="DailyGoals" 
-            component={DailyGoalsScreen}
-            options={{ title: 'Daily Goals' }}
-          />
-          <Stack.Screen 
-            name="Settings" 
-            component={SettingsScreen}
-            options={{ title: 'Settings' }}
-          />
-        </Stack.Navigator>
-      </NavigationContainer>
+          <NavigationContainer>
+            <Stack.Navigator
+              initialRouteName="Welcome"
+              screenOptions={{
+                headerShown: false,
+                cardStyle: { 
+                  backgroundColor: '#FFF8E7',
+                  // Add top padding to avoid notch
+                  paddingTop: Platform.OS === 'ios' ? 45 : 20
+                },
+              }}
+            >
+              <Stack.Screen 
+                name="Welcome" 
+                component={WelcomeScreen}
+              />
+              <Stack.Screen 
+                name="Home" 
+                component={HomeScreen}
+              />
+              <Stack.Screen 
+                name="Categories" 
+                component={CategoriesScreen}
+              />
+              <Stack.Screen 
+                name="Quiz" 
+                component={QuizScreen}
+              />
+              <Stack.Screen 
+                name="Leaderboard" 
+                component={LeaderboardScreen}
+              />
+              <Stack.Screen 
+                name="DailyGoals" 
+                component={DailyGoalsScreen}
+              />
+              <Stack.Screen 
+                name="Settings" 
+                component={SettingsScreen}
+              />
+            </Stack.Navigator>
+          </NavigationContainer>
+        </View>
+      </SafeAreaProvider>
     </ErrorBoundary>
   );
 };

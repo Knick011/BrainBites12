@@ -3,7 +3,7 @@
 // ✅ FIXES: Modern audio integration with react-native-track-player
 // console.log: "Modern QuizScreen with Firebase removed and updated service integrations"
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   View, 
   Text, 
@@ -15,14 +15,18 @@ import {
   Easing,
   ScrollView,
   StatusBar,
-  Platform
+  Platform,
+  Alert,
+  BackHandler
 } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import QuestionService from '../services/QuestionService';
 import SoundService from '../services/SoundService';
 import EnhancedScoreService from '../services/EnhancedScoreService';
 import EnhancedMascotDisplay from '../components/Mascot/EnhancedMascotDisplay';
+import { useQuizStore } from '../store/useQuizStore';
+import { useUserStore } from '../store/useUserStore';
 
 const QuizScreen = ({ navigation, route }: any) => {
   const [currentQuestion, setCurrentQuestion] = useState<any>(null);
@@ -431,16 +435,69 @@ const QuizScreen = ({ navigation, route }: any) => {
     }, 100); // Small delay to prevent accidental double-tap
   };
   
+  // Handle hardware back button
+  useFocusEffect(
+    useCallback(() => {
+      const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+        handleGoBack();
+        return true; // Prevent default behavior
+      });
+
+      return () => subscription.remove();
+    }, [streak])
+  );
+
   const handleGoBack = () => {
-    // Play button sound
-    SoundService.playButtonPress();
-    // Hide mascot if showing
-    setShowMascot(false);
-    if (navigation.canGoBack()) {
-      navigation.goBack();
-    } else {
-      navigation.navigate('Home');
-    }
+    // Show mascot with sad expression but no message
+    setMascotType('sad');
+    setShowMascot(true);
+    
+    // Create a custom styled alert with themed buttons
+    Alert.alert(
+      '🥺 Leaving so soon?',
+      `You're on a ${streak} question streak!\nQuitting will reset your progress.`,
+      [
+        { 
+          text: "Let's Continue!", 
+          style: 'default',
+          onPress: () => {
+            // Animate mascot back to happy
+            setMascotType('happy');
+            setTimeout(() => {
+              setShowMascot(false);
+            }, 1000);
+          }
+        },
+        {
+          text: 'Quit Quiz',
+          style: 'destructive',
+          onPress: () => {
+            // Play button sound
+            SoundService.playButtonPress();
+            // Reset streak in both stores
+            useQuizStore.getState().resetStreak();
+            useUserStore.getState().resetStreak();
+            // Hide mascot if showing
+            setShowMascot(false);
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            } else {
+              navigation.navigate('Home');
+            }
+          }
+        },
+      ],
+      {
+        cancelable: true,
+        onDismiss: () => {
+          // Animate mascot back to happy
+          setMascotType('happy');
+          setTimeout(() => {
+            setShowMascot(false);
+          }, 1000);
+        }
+      }
+    );
   };
   
   // Get streak progress (0-1)
