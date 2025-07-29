@@ -25,6 +25,7 @@ import EnhancedScoreService from '../services/EnhancedScoreService';
 import EnhancedMascotDisplay from '../components/Mascot/EnhancedMascotDisplay';
 import ScoreDisplay from '../components/common/ScoreDisplay';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { TimerWidget } from '../components/Timer/TimerWidget';
 
 // ✅ LIVE STATE INTEGRATION
 import { useHomeIntegration } from '../hooks/useGameIntegration';
@@ -301,6 +302,11 @@ const HomeScreen: React.FC = () => {
         <Animated.View style={[styles.header, { opacity: fadeAnim }]}>
           <Text style={styles.headerTitle}>Brain Bites</Text>
           <ScoreDisplay score={dailyScore} />
+        </Animated.View>
+
+        {/* Timer Widget */}
+        <Animated.View style={[{ opacity: fadeAnim, transform: [{ scale: scaleAnim }] }]}>
+          <TimerWidget onEarnMorePress={handleDifficultyPress.bind(null, 'easy')} />
         </Animated.View>
         
         {/* Streak Flow */}

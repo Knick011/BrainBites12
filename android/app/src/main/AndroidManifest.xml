@@ -4,6 +4,9 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 
     <application
       android:name=".MainApplication"
@@ -15,7 +18,23 @@
       android:supportsRtl="true"
       tools:replace="android:allowBackup">
       
+      <service
+        android:name=".timer.ScreenTimeService"
+        android:enabled="true"
+        android:exported="false"
+        android:foregroundServiceType="shortService" />
 
+      <receiver
+        android:name=".timer.ScreenTimeReceiver"
+        android:enabled="true"
+        android:exported="false">
+        <intent-filter>
+          <action android:name="android.intent.action.BOOT_COMPLETED" />
+          <action android:name="android.intent.action.SCREEN_ON" />
+          <action android:name="android.intent.action.SCREEN_OFF" />
+          <action android:name="android.intent.action.USER_PRESENT" />
+        </intent-filter>
+      </receiver>
       
       <activity
         android:name=".MainActivity"

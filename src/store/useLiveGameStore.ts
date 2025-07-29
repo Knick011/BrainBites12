@@ -4,6 +4,7 @@ import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import EnhancedScoreService from '../services/EnhancedScoreService';
+import { ScreenTimeModule } from '../native/ScreenTimeModule';
 
 // ==================== INTERFACES ====================
 
@@ -65,7 +66,7 @@ export interface LiveGameState {
   processQuizCompletion: (result: any) => Promise<void>;
   updateDailyGoalProgress: () => Promise<void>;
   completeGoal: (goalId: string) => Promise<number>;
-  claimGoalReward: (goalId: string) => Promise<void>;
+  claimGoalReward: (goalId: string) => Promise<number>;
   
   // Event System
   emitEvent: (event: GameEvent) => void;
@@ -295,6 +296,17 @@ export const useLiveGameStore = create<LiveGameState>()(
       const { isCorrect, pointsEarned, newScore, newStreak, timeEarned = 0, category, difficulty } = result;
       
       console.log('🎯 Processing quiz completion:', result);
+
+      // Add time to timer for correct answers
+      if (isCorrect) {
+        try {
+          // Add 2 minutes for correct answers
+          await ScreenTimeModule.addTimeFromQuiz(2);
+          console.log('✅ Added 2 minutes to timer for correct answer');
+        } catch (error) {
+          console.error('Failed to add time to timer:', error);
+        }
+      }
       
       // Update score data immediately
       const currentData = get().scoreData;
@@ -464,15 +476,56 @@ export const useLiveGameStore = create<LiveGameState>()(
     },
 
     claimGoalReward: async (goalId: string) => {
-      const timeBonus = await get().completeGoal(goalId);
+      const { dailyGoals } = get();
+      const goal = dailyGoals.find(g => g.id === goalId);
       
-      if (timeBonus > 0) {
-        // This will be integrated with timer service in Part 3
+      if (!goal || goal.claimed || !goal.completed) {
+        return 0;
+      }
+      
+      try {
+        // Add time reward based on goal type
+        let timeReward = 0;
+        switch (goal.type) {
+          case 'questions':
+            timeReward = 1; // 1 hour
+            break;
+          case 'streak':
+            timeReward = 2; // 2 hours
+            break;
+          case 'accuracy':
+            timeReward = 1; // 1 hour
+            break;
+          case 'perfect':
+            timeReward = 3; // 3 hours
+            break;
+          default:
+            timeReward = 1; // Default 1 hour
+        }
+
+        // Add time to timer
+        await ScreenTimeModule.addTimeFromGoal(timeReward);
+        console.log(`✅ Added ${timeReward} hours to timer for goal completion`);
+
+        // Update goal state
+        const updatedGoals = dailyGoals.map(g => 
+          g.id === goalId ? { ...g, claimed: true } : g
+        );
+        
+        set({ dailyGoals: updatedGoals });
+        await get().saveToStorage();
+        
+        // Emit goal completion event
         get().emitEvent({
-          type: 'TIMER_BONUS',
-          data: { goalId, timeBonus },
+          type: 'GOAL_COMPLETED',
+          data: { goalId, reward: goal.reward, timeReward },
           timestamp: Date.now()
         });
+        
+        return goal.reward;
+      } catch (error) {
+        console.error('Failed to claim goal reward:', error);
+        return 0;
       }
     },
 
