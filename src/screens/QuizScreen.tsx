@@ -24,6 +24,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import QuestionService from '../services/QuestionService';
 import SoundService from '../services/SoundService';
 import EnhancedScoreService from '../services/EnhancedScoreService';
+import TimerIntegrationService from '../services/TimerIntegrationService';
 import EnhancedMascotDisplay from '../components/Mascot/EnhancedMascotDisplay';
 import { useQuizStore } from '../store/useQuizStore';
 import { useUserStore } from '../store/useUserStore';
@@ -309,6 +310,23 @@ const QuizScreen = ({ navigation, route }: any) => {
           setCorrectAnswers(prev => prev + 1);
           setShowPointsAnimation(true);
           setShowSpeedFeedback(true);
+          
+          // ✅ ADD TIMER INTEGRATION - Add time for correct answers
+          let timeToAdd = 1; // Base 1 minute for easy
+          if (difficulty === 'medium') timeToAdd = 2;
+          if (difficulty === 'hard') timeToAdd = 3;
+          
+          console.log(`🧠 [QuizScreen] Adding ${timeToAdd} minutes for correct ${difficulty} answer`);
+          
+          // Initialize timer integration if needed
+          await TimerIntegrationService.initialize();
+          const timerResult = await TimerIntegrationService.addTimeFromQuiz(timeToAdd);
+          
+          if (timerResult) {
+            console.log(`✅ [QuizScreen] Successfully added ${timeToAdd}m to timer`);
+          } else {
+            console.error(`❌ [QuizScreen] Failed to add time to timer`);
+          }
           
           // Animate points and speed feedback
           pointsAnim.setValue(0);

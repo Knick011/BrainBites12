@@ -30,6 +30,7 @@ import { TimerWidget } from '../components/Timer/TimerWidget';
 // ✅ LIVE STATE INTEGRATION
 import { useHomeIntegration } from '../hooks/useGameIntegration';
 import { useLiveScore } from '../store/useLiveGameStore';
+import TimerIntegrationService from '../services/TimerIntegrationService';
 
 const { width } = Dimensions.get('window');
 
@@ -118,6 +119,23 @@ const HomeScreen: React.FC = () => {
   
   useEffect(() => {
     initializeHome();
+    
+    // Start timer service when app loads
+    const initializeTimer = async () => {
+      try {
+        console.log('🕐 [HomeScreen] Initializing hybrid timer system');
+        await TimerIntegrationService.initialize();
+        
+        // Start tracking if there's time available
+        await TimerIntegrationService.startTimer();
+        
+        console.log('✅ [HomeScreen] Hybrid timer system initialized');
+      } catch (error) {
+        console.error('❌ [HomeScreen] Failed to initialize hybrid timer system:', error);
+      }
+    };
+    
+    initializeTimer();
     
     Animated.parallel([
       Animated.timing(fadeAnim, {
@@ -228,8 +246,8 @@ const HomeScreen: React.FC = () => {
   const handlePeekingMascotPress = () => {
     let message = '';
     
-    if (currentStreak >= 5) {
-      message = `🔥 Amazing Streak! 🔥\n\nYou're on a ${currentStreak} question streak!\nKeep it up, you're unstoppable!`;
+    if (highestStreak >= 5) {
+      message = `🔥 Amazing Streak! 🔥\n\nYour best streak today: ${highestStreak} questions!\nKeep it up, you're unstoppable!`;
       setMascotType('excited');
     } else if (questionsToday >= 10) {
       message = `🎯 Great Progress! 🎯\n\nYou've answered ${questionsToday} questions today!\nAccuracy: ${accuracy}%`;

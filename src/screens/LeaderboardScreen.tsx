@@ -21,6 +21,7 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import SoundService from '../services/SoundService';
 import EnhancedScoreService from '../services/EnhancedScoreService';
+import theme from '../styles/theme';
 
 // ✅ LIVE STATE INTEGRATION
 import { useLeaderboardIntegration } from '../hooks/useGameIntegration';
@@ -369,79 +370,97 @@ const LeaderboardScreen = () => {
   const renderLeaderboardItem = ({ item, index }: { item: LeaderboardEntry; index: number }) => {
     if (item.isSeparator) {
       return (
-        <View key={item.id} style={styles.separator}>
+        <View style={styles.separator}>
           <View style={styles.separatorLine} />
           <View style={styles.separatorTextContainer}>
-            <Icon name="dots-vertical" size={20} color="#999" />
+            <Icon name="dots-vertical" size={20} color={theme.colors.textSecondary} />
             <Text style={styles.separatorText}>
               {activeTab === 'global' ? 'Many capybaras later...' : 'More capybaras...'}
             </Text>
-            <Icon name="dots-vertical" size={20} color="#999" />
+            <Icon name="dots-vertical" size={20} color={theme.colors.textSecondary} />
           </View>
           <View style={styles.separatorLine} />
         </View>
       );
     }
-    
-    const isTopThree = item.rank <= 3;
-    const medalColors = ['#FFD700', '#C0C0C0', '#CD7F32']; // Gold, Silver, Bronze
-    
+
+    const isTop3 = item.rank <= 3;
+    const isCurrentUser = item.isCurrentUser;
+
     return (
-      <Animated.View
-        key={item.id}
+      <Animated.View 
         style={[
           styles.leaderboardItem,
-          item.isCurrentUser && styles.currentUserItem,
-          {
-            opacity: fadeAnim,
-            transform: [
-              {
-                translateX: slideAnim.interpolate({
-                  inputRange: [0, 50],
-                  outputRange: [0, index * 2],
-                }),
-              },
-              item.isCurrentUser ? { scale: pulseAnim } : { scale: 1 },
-            ],
-          },
+          isCurrentUser && styles.currentUserItem,
+          { opacity: fadeAnim }
         ]}
       >
+        {/* Rank & Name */}
         <View style={styles.rankContainer}>
-          {isTopThree ? (
-            <View style={[styles.medal, { backgroundColor: medalColors[item.rank - 1] }]}>
-              <Icon name="crown" size={16} color="white" />
-              <Text style={styles.medalText}>{item.rank}</Text>
-            </View>
-          ) : (
-            <Text style={[styles.rankText, item.isCurrentUser && styles.currentUserRank]}>
-              #{item.rank}
+          <View style={[styles.rankBadge, isTop3 && styles.topRankBadge]}>
+            <Text style={[styles.rankText, isTop3 && styles.topRankText]}>
+              {item.rank}
             </Text>
-          )}
-        </View>
-        
-        <View style={styles.playerInfo}>
-          <Text style={[styles.playerName, item.isCurrentUser && styles.currentUserName]}>
-            {item.displayName} {item.isCurrentUser && '(You)'}
-          </Text>
-          <View style={styles.statsRow}>
-            <Icon name="star" size={14} color="#FFD700" />
-            <Text style={styles.scoreText}>{(item.score ?? 0).toLocaleString()}</Text>
-            {item.highestStreak > 0 && (
-              <>
-                <Icon name="fire" size={14} color="#FF9F1C" style={{ marginLeft: 12 }} />
-                <Text style={styles.streakText}>{item.highestStreak}</Text>
-              </>
-            )}
-            {item.lastActive && activeTab === 'global' && (
-              <Text style={styles.lastActive}>{item.lastActive}</Text>
-            )}
+          </View>
+          <View style={styles.nameContainer}>
+            <Text style={styles.playerName}>
+              {item.displayName}
+            </Text>
+            <Text style={styles.lastActive}>
+              {item.lastActive}
+            </Text>
           </View>
         </View>
-        
-        {item.isCurrentUser && (
-          <Icon name="chevron-right" size={24} color="#FF9F1C" />
-        )}
+
+        {/* Score & Stats */}
+        <View style={styles.statsContainer}>
+          <View style={styles.scoreContainer}>
+            <Icon name="star" size={16} color={theme.colors.warning} />
+            <Text style={styles.scoreText}>
+              {item.score.toLocaleString()}
+            </Text>
+          </View>
+          <View style={styles.streakContainer}>
+            <Icon name="fire" size={16} color={theme.colors.primary} />
+            <Text style={styles.streakText}>
+              {item.highestStreak}
+            </Text>
+          </View>
+        </View>
       </Animated.View>
+    );
+  };
+
+  // User Stats Section
+  const renderUserStats = () => {
+    const { userScore, userStreak, userAccuracy } = useLeaderboardIntegration();
+    
+    return (
+      <View style={styles.userStatsContainer}>
+        <Text style={styles.userStatsTitle}>Your Stats</Text>
+        <View style={styles.userStatsGrid}>
+          {/* Daily Score */}
+          <View style={styles.statCard}>
+            <Icon name="star" size={24} color={theme.colors.warning} />
+            <Text style={styles.statValue}>{userScore.toLocaleString()}</Text>
+            <Text style={styles.statLabel}>Daily Score</Text>
+          </View>
+          
+          {/* Best Streak */}
+          <View style={styles.statCard}>
+            <Icon name="fire" size={24} color={theme.colors.primary} />
+            <Text style={styles.statValue}>{userStreak}</Text>
+            <Text style={styles.statLabel}>Best Streak</Text>
+          </View>
+          
+          {/* Accuracy */}
+          <View style={styles.statCard}>
+            <Icon name="target" size={24} color={theme.colors.success} />
+            <Text style={styles.statValue}>{userAccuracy}%</Text>
+            <Text style={styles.statLabel}>Accuracy</Text>
+          </View>
+        </View>
+      </View>
     );
   };
   
@@ -472,15 +491,25 @@ const LeaderboardScreen = () => {
           </View>
           <View style={styles.userCardRight}>
             <Text style={styles.userCardLabel}>Top {percentile}%</Text>
-            <Text style={styles.userCardScore}>
-              {(userScore ?? 0).toLocaleString()}
-            </Text>
-            <Text style={styles.userCardSubtext}>points</Text>
+            <View style={styles.userCardStats}>
+              <View style={styles.userCardStatItem}>
+                <Icon name="star" size={16} color={theme.colors.warning} />
+                <Text style={styles.userCardScore}>
+                  {(userScore ?? 0).toLocaleString()}
+                </Text>
+              </View>
+              <View style={styles.userCardStatItem}>
+                <Icon name="fire" size={16} color={theme.colors.primary} />
+                <Text style={styles.userCardScore}>
+                  {userStreak}
+                </Text>
+              </View>
+            </View>
           </View>
         </View>
       </Animated.View>
     );
-  }, [userRank, userScore, activeTab, fadeAnim, pulseAnim]);
+  }, [userRank, userScore, userStreak, activeTab, fadeAnim, pulseAnim]);
   
   return (
     <SafeAreaView style={styles.container}>
@@ -694,111 +723,141 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
   leaderboardItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     backgroundColor: 'white',
     borderRadius: 12,
     padding: 16,
-    marginVertical: 4,
-    flexDirection: 'row',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    marginBottom: 8,
+    ...theme.shadows.small,
   },
   currentUserItem: {
-    backgroundColor: '#FFF5E6',
-    borderWidth: 2,
-    borderColor: '#FF9F1C',
+    borderLeftWidth: 4,
+    borderLeftColor: theme.colors.primary,
   },
   rankContainer: {
-    width: 60,
+    flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
   },
-  medal: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  rankBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    alignItems: 'center',
     justifyContent: 'center',
-    alignItems: 'center',
-    flexDirection: 'column',
+    marginRight: 12,
   },
-  medalText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: 'white',
-    marginTop: -2,
+  topRankBadge: {
+    backgroundColor: theme.colors.warning,
   },
   rankText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
-    color: '#666',
-    fontFamily: Platform.OS === 'ios' ? 'Avenir-Heavy' : 'sans-serif-medium',
+    color: theme.colors.textSecondary,
   },
-  currentUserRank: {
-    color: '#FF9F1C',
+  topRankText: {
+    color: 'white',
   },
-  playerInfo: {
+  nameContainer: {
     flex: 1,
-    marginLeft: 16,
   },
   playerName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
-    fontFamily: Platform.OS === 'ios' ? 'Avenir-Medium' : 'sans-serif-medium',
-  },
-  currentUserName: {
-    color: '#FF9F1C',
-    fontWeight: 'bold',
-  },
-  statsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  scoreText: {
-    fontSize: 14,
-    color: '#666',
-    marginLeft: 4,
-    fontFamily: Platform.OS === 'ios' ? 'Avenir' : 'sans-serif',
-  },
-  streakText: {
-    fontSize: 14,
-    color: '#666',
-    marginLeft: 4,
-    fontFamily: Platform.OS === 'ios' ? 'Avenir' : 'sans-serif',
+    color: theme.colors.textPrimary,
+    marginBottom: 2,
   },
   lastActive: {
     fontSize: 12,
-    color: '#999',
-    marginLeft: 'auto',
-    fontStyle: 'italic',
-    fontFamily: Platform.OS === 'ios' ? 'Avenir' : 'sans-serif',
+    color: theme.colors.textSecondary,
   },
+  statsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  scoreContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  scoreText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+    marginLeft: 4,
+  },
+  streakContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  streakText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+    marginLeft: 4,
+  },
+  
+  // User Stats Styles
+  userStatsContainer: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    ...theme.shadows.small,
+  },
+  userStatsTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: theme.colors.textPrimary,
+    marginBottom: 12,
+  },
+  userStatsGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  statCard: {
+    flex: 1,
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: 'rgba(0,0,0,0.02)',
+    borderRadius: 8,
+    marginHorizontal: 4,
+  },
+  statValue: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: theme.colors.textPrimary,
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+  },
+  
+  // Separator Style
   separator: {
-    marginVertical: 20,
+    marginVertical: 16,
     alignItems: 'center',
   },
   separatorLine: {
     height: 1,
-    backgroundColor: '#e0e0e0',
-    width: '100%',
+    backgroundColor: 'rgba(0,0,0,0.1)',
+    flex: 1,
   },
   separatorTextContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFF8E7',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    position: 'absolute',
+    paddingHorizontal: 8,
   },
   separatorText: {
     fontSize: 12,
-    color: '#999',
+    color: theme.colors.textSecondary,
     marginHorizontal: 8,
     fontStyle: 'italic',
-    fontFamily: Platform.OS === 'ios' ? 'Avenir' : 'sans-serif',
   },
   footer: {
     alignItems: 'center',
@@ -849,6 +908,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     fontFamily: Platform.OS === 'ios' ? 'Avenir-Heavy' : 'sans-serif-medium',
+  },
+  userCardStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  userCardStatItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 12,
   },
 });
 

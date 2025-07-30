@@ -2,6 +2,7 @@ package com.brainbites.timer
 
 import android.content.Context
 import android.os.SystemClock
+import android.util.Log
 import com.brainbites.timer.storage.ScreenTimeStorage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -172,20 +173,34 @@ class ScreenTimeManager private constructor(context: Context) {
     }
 
     fun addTimeFromQuiz(minutes: Int) {
+        Log.d("ScreenTimeManager", "✅ Adding $minutes minutes from quiz")
         val seconds = minutes * 60L
+        val oldRemainingTime = _timerState.value.remainingTime
+        
         _timerState.value = _timerState.value.copy(
             remainingTime = _timerState.value.remainingTime + seconds,
             isInDebtMode = false
         )
+        
+        val newRemainingTime = _timerState.value.remainingTime
+        Log.d("ScreenTimeManager", "✅ Quiz time added: ${oldRemainingTime}s -> ${newRemainingTime}s (+${seconds}s)")
+        
         scope.launch { saveState() }
     }
 
     fun addTimeFromGoal(hours: Int) {
+        Log.d("ScreenTimeManager", "✅ Adding $hours hours from goal")
         val seconds = hours * 3600L
+        val oldRemainingTime = _timerState.value.remainingTime
+        
         _timerState.value = _timerState.value.copy(
             remainingTime = _timerState.value.remainingTime + seconds,
             isInDebtMode = false
         )
+        
+        val newRemainingTime = _timerState.value.remainingTime
+        Log.d("ScreenTimeManager", "✅ Goal time added: ${oldRemainingTime}s -> ${newRemainingTime}s (+${seconds}s)")
+        
         scope.launch { saveState() }
     }
 

@@ -76,7 +76,7 @@ export const LiveScoreDisplay: React.FC<LiveScoreDisplayProps> = ({
   streakStyle,
   accuracyStyle
 }) => {
-  const { dailyScore, currentStreak, accuracy, animatingScore, animatingStreak } = useLiveScore();
+  const { dailyScore, currentStreak, highestStreak, accuracy, animatingScore, animatingStreak } = useLiveScore();
   
   const scoreGlowAnim = useRef(new Animated.Value(0)).current;
   const streakGlowAnim = useRef(new Animated.Value(0)).current;
@@ -176,11 +176,14 @@ export const LiveScoreDisplay: React.FC<LiveScoreDisplayProps> = ({
           transform: [{ scale: scoreScaleAnim }]
         }
       ]}>
-        <AnimatedNumber
-          value={dailyScore}
-          style={[styles.scoreText, scoreStyle]}
-          animationDuration={600}
-        />
+        <View style={styles.scoreContent}>
+          <Text style={styles.scoreIcon}>🎯</Text>
+          <AnimatedNumber
+            value={dailyScore}
+            style={[styles.scoreText, scoreStyle]}
+            animationDuration={600}
+          />
+        </View>
         <Text style={styles.scoreLabel}>Score</Text>
       </Animated.View>
       
@@ -196,12 +199,12 @@ export const LiveScoreDisplay: React.FC<LiveScoreDisplayProps> = ({
           <View style={styles.streakContent}>
             <Text style={styles.streakIcon}>🔥</Text>
             <AnimatedNumber
-              value={currentStreak}
+              value={highestStreak}
               style={[styles.streakText, streakStyle]}
               animationDuration={400}
             />
           </View>
-          <Text style={styles.streakLabel}>Streak</Text>
+          <Text style={styles.streakLabel}>Best Streak</Text>
         </Animated.View>
       )}
       
@@ -487,6 +490,14 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 12,
     minWidth: 80,
+  },
+  scoreContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  scoreIcon: {
+    fontSize: 24,
+    marginRight: 8,
   },
   scoreText: {
     fontSize: 24,

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { useLiveGameStore, useGameEvents, GameEvent } from '../store/useLiveGameStore';
 import EnhancedScoreService from '../services/EnhancedScoreService';
+import TimerIntegrationService from '../services/TimerIntegrationService';
 import SoundService from '../services/SoundService';
 
 // ==================== INTEGRATION HOOK ====================
@@ -290,12 +291,34 @@ export const useDailyGoalsIntegration = () => {
   
   const handleClaimReward = useCallback(async (goalId: string) => {
     try {
+      const goal = dailyGoals.find(g => g.id === goalId);
+      if (!goal) return;
+
+      console.log(`🎯 [DailyGoals] Claiming reward for goal: ${goal.title}`);
+      
+      // Existing goal completion logic...
       await claimGoalReward(goalId);
+      
+      // ✅ ADD TIMER INTEGRATION - Add time for goal completion
+      // Calculate minutes based on reward points (1 minute per 10 points)
+      const timeToAdd = Math.floor(goal.reward / 10); // 1 minute per 10 points
+      
+      if (timeToAdd > 0) {
+        console.log(`🎯 [DailyGoals] Adding ${timeToAdd} minutes for goal completion`);
+        const timerResult = await TimerIntegrationService.addTimeFromGoal(timeToAdd);
+        
+        if (timerResult) {
+          console.log(`✅ [DailyGoals] Successfully added ${timeToAdd}m to timer`);
+        } else {
+          console.error(`❌ [DailyGoals] Failed to add time to timer`);
+        }
+      }
+      
       SoundService.playStreak();
     } catch (error) {
-      console.error('Failed to claim reward:', error);
+      console.error('❌ [DailyGoals] Error claiming goal reward:', error);
     }
-  }, [claimGoalReward]);
+  }, [claimGoalReward, dailyGoals]);
   
   const refreshProgress = useCallback(async () => {
     await updateDailyGoalProgress();

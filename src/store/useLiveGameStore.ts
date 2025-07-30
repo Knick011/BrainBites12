@@ -4,7 +4,7 @@ import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import EnhancedScoreService from '../services/EnhancedScoreService';
-import { ScreenTimeModule } from '../native/ScreenTimeModule';
+import { NativeModules } from 'react-native';
 
 // ==================== INTERFACES ====================
 
@@ -301,7 +301,7 @@ export const useLiveGameStore = create<LiveGameState>()(
       if (isCorrect) {
         try {
           // Add 2 minutes for correct answers
-          await ScreenTimeModule.addTimeFromQuiz(2);
+          await NativeModules.ScreenTimeModule.addTimeFromQuiz(2);
           console.log('✅ Added 2 minutes to timer for correct answer');
         } catch (error) {
           console.error('Failed to add time to timer:', error);
@@ -484,28 +484,28 @@ export const useLiveGameStore = create<LiveGameState>()(
       }
       
       try {
-        // Add time reward based on goal type
+        // Add time reward based on goal type (in minutes)
         let timeReward = 0;
         switch (goal.type) {
           case 'questions':
-            timeReward = 1; // 1 hour
+            timeReward = 15; // 15 minutes
             break;
           case 'streak':
-            timeReward = 2; // 2 hours
+            timeReward = 30; // 30 minutes
             break;
           case 'accuracy':
-            timeReward = 1; // 1 hour
+            timeReward = 20; // 20 minutes
             break;
           case 'perfect':
-            timeReward = 3; // 3 hours
+            timeReward = 60; // 60 minutes (1 hour)
             break;
           default:
-            timeReward = 1; // Default 1 hour
+            timeReward = 15; // Default 15 minutes
         }
 
-        // Add time to timer
-        await ScreenTimeModule.addTimeFromGoal(timeReward);
-        console.log(`✅ Added ${timeReward} hours to timer for goal completion`);
+        // Add time to timer (pass minutes directly)
+        await NativeModules.ScreenTimeModule.addTimeFromGoal(timeReward);
+        console.log(`✅ Added ${timeReward} minutes to timer for goal completion`);
 
         // Update goal state
         const updatedGoals = dailyGoals.map(g => 

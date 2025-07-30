@@ -1,6 +1,12 @@
 package com.brainbites.timer
 
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
+import android.os.Build
+import android.util.Log
+import androidx.core.content.ContextCompat
 import com.facebook.react.bridge.*
 import com.facebook.react.modules.core.DeviceEventManagerModule
 import kotlinx.coroutines.*
@@ -10,10 +16,13 @@ class ScreenTimeModule(reactContext: ReactApplicationContext) : ReactContextBase
     private val scope = CoroutineScope(Dispatchers.Default + Job())
     private var screenTimeManager: ScreenTimeManager? = null
     private var stateCollectionJob: Job? = null
+    private var timerReceiver: BroadcastReceiver? = null
+    private val TAG = "ScreenTimeModule"
 
     init {
         screenTimeManager = ScreenTimeManager.getInstance(reactContext.applicationContext)
         startStateCollection()
+        startBroadcastListener()
     }
 
     override fun getName() = "ScreenTimeModule"
@@ -24,6 +33,38 @@ class ScreenTimeModule(reactContext: ReactApplicationContext) : ReactContextBase
                 sendEvent("onTimerStateChanged", createTimerStateMap(state))
             }
         }
+    }
+    
+    private fun startBroadcastListener() {
+        if (timerReceiver != null) return
+        
+        timerReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                intent?.let {
+                    val remainingTime = it.getIntExtra("remaining_time", 0)
+                    val todayScreenTime = it.getIntExtra("today_screen_time", 0)
+                    val isAppForeground = it.getBooleanExtra("is_app_foreground", false)
+                    val isTracking = it.getBooleanExtra("is_tracking", false)
+                    
+                    sendEvent("timerUpdate", Arguments.createMap().apply {
+                        putInt("remainingTime", remainingTime)
+                        putInt("todayScreenTime", todayScreenTime)
+                        putBoolean("isAppForeground", isAppForeground)
+                        putBoolean("isTracking", isTracking)
+                    })
+                }
+            }
+        }
+        
+        val filter = IntentFilter("brainbites_timer_update")
+        ContextCompat.registerReceiver(
+            reactApplicationContext, 
+            timerReceiver, 
+            filter, 
+            ContextCompat.RECEIVER_NOT_EXPORTED
+        )
+        
+        Log.d(TAG, "✅ Broadcast listener started")
     }
 
     private fun createTimerStateMap(state: TimerStatus): WritableMap {
@@ -47,19 +88,79 @@ class ScreenTimeModule(reactContext: ReactApplicationContext) : ReactContextBase
     @ReactMethod
     fun addTimeFromQuiz(minutes: Int, promise: Promise) {
         try {
+            Log.d(TAG, "🧠 Adding $minutes minutes from quiz")
+            
+            // Add to ScreenTimeManager
             screenTimeManager?.addTimeFromQuiz(minutes)
+            
+            // Also add to the service directly
+            val intent = Intent(reactApplicationContext, ScreenTimeService::class.java).apply {
+                action = ScreenTimeService.ACTION_ADD_TIME
+                putExtra(ScreenTimeService.EXTRA_TIME_SECONDS, minutes * 60)
+            }
+            
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                reactApplicationContext.startForegroundService(intent)
+            } else {
+                reactApplicationContext.startService(intent)
+            }
+            
             promise.resolve(true)
+            Log.d(TAG, "✅ Successfully added $minutes minutes from quiz")
         } catch (e: Exception) {
+            Log.e(TAG, "❌ Failed to add quiz time", e)
             promise.reject("ERROR", e.message)
         }
     }
 
     @ReactMethod
-    fun addTimeFromGoal(hours: Int, promise: Promise) {
+    fun addTimeFromGoal(minutes: Int, promise: Promise) {
         try {
+            Log.d(TAG, "🎯 Adding $minutes minutes from goal")
+            
+            // Add to ScreenTimeManager (convert to hours for compatibility)
+            val hours = Math.max(1, minutes / 60)
             screenTimeManager?.addTimeFromGoal(hours)
+            
+            // Also add to the service directly (use exact minutes)
+            val intent = Intent(reactApplicationContext, ScreenTimeService::class.java).apply {
+                action = ScreenTimeService.ACTION_ADD_TIME
+                putExtra(ScreenTimeService.EXTRA_TIME_SECONDS, minutes * 60)
+            }
+            
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                reactApplicationContext.startForegroundService(intent)
+            } else {
+                reactApplicationContext.startService(intent)
+            }
+            
+            promise.resolve(true)
+            Log.d(TAG, "✅ Successfully added $minutes minutes from goal")
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Failed to add goal time", e)
+            promise.reject("ERROR", e.message)
+        }
+    }
+
+    @ReactMethod
+    fun setScreenTime(seconds: Int, promise: Promise) {
+        try {
+            Log.d(TAG, "⏰ Setting screen time to $seconds seconds")
+            
+            val intent = Intent(reactApplicationContext, ScreenTimeService::class.java).apply {
+                action = ScreenTimeService.ACTION_UPDATE_TIME
+                putExtra(ScreenTimeService.EXTRA_TIME_SECONDS, seconds)
+            }
+            
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                reactApplicationContext.startForegroundService(intent)
+            } else {
+                reactApplicationContext.startService(intent)
+            }
+            
             promise.resolve(true)
         } catch (e: Exception) {
+            Log.e(TAG, "❌ Failed to set screen time", e)
             promise.reject("ERROR", e.message)
         }
     }
@@ -67,12 +168,20 @@ class ScreenTimeModule(reactContext: ReactApplicationContext) : ReactContextBase
     @ReactMethod
     fun startTimer(promise: Promise) {
         try {
+            Log.d(TAG, "▶️ Starting timer")
             val intent = Intent(reactApplicationContext, ScreenTimeService::class.java).apply {
                 action = ScreenTimeService.ACTION_START
             }
-            reactApplicationContext.startService(intent)
+            
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                reactApplicationContext.startForegroundService(intent)
+            } else {
+                reactApplicationContext.startService(intent)
+            }
+            
             promise.resolve(true)
         } catch (e: Exception) {
+            Log.e(TAG, "❌ Failed to start timer", e)
             promise.reject("ERROR", e.message)
         }
     }
@@ -80,12 +189,14 @@ class ScreenTimeModule(reactContext: ReactApplicationContext) : ReactContextBase
     @ReactMethod
     fun pauseTimer(promise: Promise) {
         try {
+            Log.d(TAG, "⏸️ Pausing timer")
             val intent = Intent(reactApplicationContext, ScreenTimeService::class.java).apply {
                 action = ScreenTimeService.ACTION_PAUSE
             }
             reactApplicationContext.startService(intent)
             promise.resolve(true)
         } catch (e: Exception) {
+            Log.e(TAG, "❌ Failed to pause timer", e)
             promise.reject("ERROR", e.message)
         }
     }
@@ -93,12 +204,14 @@ class ScreenTimeModule(reactContext: ReactApplicationContext) : ReactContextBase
     @ReactMethod
     fun stopTimer(promise: Promise) {
         try {
+            Log.d(TAG, "⏹️ Stopping timer")
             val intent = Intent(reactApplicationContext, ScreenTimeService::class.java).apply {
                 action = ScreenTimeService.ACTION_STOP
             }
             reactApplicationContext.startService(intent)
             promise.resolve(true)
         } catch (e: Exception) {
+            Log.e(TAG, "❌ Failed to stop timer", e)
             promise.reject("ERROR", e.message)
         }
     }
@@ -113,14 +226,54 @@ class ScreenTimeModule(reactContext: ReactApplicationContext) : ReactContextBase
                 promise.reject("ERROR", "Timer state not available")
             }
         } catch (e: Exception) {
+            Log.e(TAG, "❌ Failed to get timer state", e)
             promise.reject("ERROR", e.message)
         }
     }
 
-    override fun onCatalystInstanceDestroy() {
-        super.onCatalystInstanceDestroy()
-        stateCollectionJob?.cancel()
-        scope.cancel()
+    @ReactMethod
+    fun getRemainingTime(promise: Promise) {
+        try {
+            val sharedPrefs = reactApplicationContext.getSharedPreferences("BrainBitesTimerPrefs", Context.MODE_PRIVATE)
+            val remainingTime = sharedPrefs.getInt("remaining_time", 0)
+            promise.resolve(remainingTime)
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Failed to get remaining time", e)
+            promise.reject("ERROR", e.message)
+        }
+    }
+
+    @ReactMethod
+    fun getTodayScreenTime(promise: Promise) {
+        try {
+            val sharedPrefs = reactApplicationContext.getSharedPreferences("BrainBitesTimerPrefs", Context.MODE_PRIVATE)
+            val todayScreenTime = sharedPrefs.getInt("today_screen_time", 0)
+            promise.resolve(todayScreenTime)
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Failed to get today screen time", e)
+            promise.reject("ERROR", e.message)
+        }
+    }
+
+    @ReactMethod
+    fun notifyAppState(state: String, promise: Promise) {
+        try {
+            Log.d(TAG, "📱 App state notification: $state")
+            
+            val intent = Intent(reactApplicationContext, ScreenTimeService::class.java).apply {
+                action = when(state) {
+                    "app_foreground" -> ScreenTimeService.ACTION_APP_FOREGROUND
+                    "app_background" -> ScreenTimeService.ACTION_APP_BACKGROUND
+                    else -> return
+                }
+            }
+            
+            reactApplicationContext.startService(intent)
+            promise.resolve(true)
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Failed to notify app state", e)
+            promise.reject("ERROR", e.message)
+        }
     }
 
     @ReactMethod
@@ -132,4 +285,22 @@ class ScreenTimeModule(reactContext: ReactApplicationContext) : ReactContextBase
     fun removeListeners(count: Int) {
         // Required for RN event emitter
     }
-} 
+
+    override fun onCatalystInstanceDestroy() {
+        super.onCatalystInstanceDestroy()
+        
+        timerReceiver?.let { 
+            try {
+                reactApplicationContext.unregisterReceiver(it)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error unregistering receiver", e)
+            }
+            timerReceiver = null
+        }
+        
+        stateCollectionJob?.cancel()
+        scope.cancel()
+        
+        Log.d(TAG, "✅ ScreenTimeModule destroyed")
+    }
+}

@@ -10,12 +10,11 @@ import {
   Platform
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import theme from '../../styles/theme';
+import { colors, spacing, borderRadius, shadows } from '../../styles/theme';
+import { useLiveScore } from '../../store/useLiveGameStore';
 
 interface ScoreDisplayProps {
   score?: number;
-  streak?: number;
-  animate?: boolean;
   showStreak?: boolean;
   showMilestoneProgress?: boolean;
   milestoneEvery?: number;
@@ -25,9 +24,7 @@ interface ScoreDisplayProps {
 }
 
 const ScoreDisplay: React.FC<ScoreDisplayProps> = ({ 
-  score = 0,
-  streak = 0,
-  animate = false,
+  score,
   showStreak = true,
   showMilestoneProgress = true,
   milestoneEvery = 5,
@@ -35,6 +32,9 @@ const ScoreDisplay: React.FC<ScoreDisplayProps> = ({
   onMilestoneReached = null,
   style
 }) => {
+  // Get live score data including highest streak
+  const { dailyScore, highestStreak, animatingScore, animatingStreak } = useLiveScore();
+  
   // Animation values
   const scoreAnim = useRef(new Animated.Value(0)).current;
   const streakAnim = useRef(new Animated.Value(1)).current;
@@ -46,13 +46,13 @@ const ScoreDisplay: React.FC<ScoreDisplayProps> = ({
   };
   
   // Calculate streak milestone progress
-  const streakProgress = (streak % milestoneEvery) / milestoneEvery;
-  const nextMilestone = Math.floor(streak / milestoneEvery + 1) * milestoneEvery;
-  const atMilestone = streak > 0 && streak % milestoneEvery === 0;
+  const streakProgress = (highestStreak % milestoneEvery) / milestoneEvery;
+  const nextMilestone = Math.floor(highestStreak / milestoneEvery + 1) * milestoneEvery;
+  const atMilestone = highestStreak > 0 && highestStreak % milestoneEvery === 0;
   
   // Update animations when props change
   useEffect(() => {
-    if (animate) {
+    if (animatingScore) {
       // Animate score counting up
       Animated.timing(scoreAnim, {
         toValue: 1,
@@ -60,7 +60,14 @@ const ScoreDisplay: React.FC<ScoreDisplayProps> = ({
         useNativeDriver: true,
         easing: Easing.out(Easing.cubic),
       }).start();
-      
+    } else {
+      scoreAnim.setValue(1);
+    }
+  }, [animatingScore, dailyScore]);
+  
+  // Streak animation effects
+  useEffect(() => {
+    if (animatingStreak) {
       // Pulse animation for streak
       Animated.sequence([
         Animated.timing(streakAnim, {
@@ -84,31 +91,29 @@ const ScoreDisplay: React.FC<ScoreDisplayProps> = ({
         easing: Easing.out(Easing.cubic),
       }).start();
     } else {
-      // Set values immediately without animation
-      scoreAnim.setValue(1);
       streakAnim.setValue(1);
       progressAnim.setValue(streakProgress);
     }
     
     // Notify when milestone reached
     if (atMilestone && onMilestoneReached) {
-      onMilestoneReached(streak);
+      onMilestoneReached(highestStreak);
     }
-  }, [score, streak, animate]);
+  }, [highestStreak, animatingStreak]);
   
   // Render based on variant
   const renderHorizontal = () => (
     <View style={[styles.container, styles.horizontal, style]}>
       {/* Score */}
       <View style={styles.scoreContainer}>
-        <Icon name="star" size={20} color={theme.colors.warning} style={styles.scoreIcon} />
+        <Icon name="star" size={20} color={colors.warning} style={styles.scoreIcon} />
         <Animated.Text 
           style={[
             styles.scoreText,
             { opacity: scoreAnim }
           ]}
         >
-          {formatNumber(score)}
+          {formatNumber(score ?? dailyScore)}
         </Animated.Text>
       </View>
       
@@ -119,14 +124,14 @@ const ScoreDisplay: React.FC<ScoreDisplayProps> = ({
             styles.streakContainer,
             { 
               transform: [{ scale: streakAnim }],
-              backgroundColor: atMilestone ? theme.colors.warning : 'white'
+              backgroundColor: atMilestone ? colors.warning : 'white'
             }
           ]}
         >
           <Icon 
             name="fire" 
             size={16} 
-            color={atMilestone ? 'white' : theme.colors.primary} 
+            color={atMilestone ? 'white' : colors.primary} 
           />
           <Text 
             style={[
@@ -134,32 +139,9 @@ const ScoreDisplay: React.FC<ScoreDisplayProps> = ({
               atMilestone && { color: 'white' }
             ]}
           >
-            {streak}
+            {highestStreak}
           </Text>
         </Animated.View>
-      )}
-      
-      {/* Milestone Progress Bar */}
-      {showMilestoneProgress && streak > 0 && (
-        <View style={styles.progressContainer}>
-          <Animated.View 
-            style={[
-              styles.progressFill,
-              { 
-                width: progressAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: ['0%', '100%']
-                }),
-                backgroundColor: streak % milestoneEvery === 0 
-                  ? theme.colors.warning 
-                  : theme.colors.primary
-              }
-            ]}
-          />
-          <Text style={styles.nextMilestoneText}>
-            {streak % milestoneEvery === 0 ? 'Milestone!' : `${nextMilestone}`}
-          </Text>
-        </View>
       )}
     </View>
   );
@@ -168,14 +150,14 @@ const ScoreDisplay: React.FC<ScoreDisplayProps> = ({
     <View style={[styles.container, styles.vertical, style]}>
       {/* Score */}
       <View style={styles.scoreContainerVertical}>
-        <Icon name="star" size={24} color={theme.colors.warning} style={styles.scoreIcon} />
+        <Icon name="star" size={24} color={colors.warning} style={styles.scoreIcon} />
         <Animated.Text 
           style={[
             styles.scoreTextLarge,
             { opacity: scoreAnim }
           ]}
         >
-          {formatNumber(score)}
+          {formatNumber(score ?? dailyScore)}
         </Animated.Text>
       </View>
       
@@ -188,14 +170,14 @@ const ScoreDisplay: React.FC<ScoreDisplayProps> = ({
               styles.streakContainerLarge,
               { 
                 transform: [{ scale: streakAnim }],
-                backgroundColor: atMilestone ? theme.colors.warning : 'white'
+                backgroundColor: atMilestone ? colors.warning : 'white'
               }
             ]}
           >
             <Icon 
               name="fire" 
               size={20} 
-              color={atMilestone ? 'white' : theme.colors.primary} 
+              color={atMilestone ? 'white' : colors.primary} 
             />
             <Text 
               style={[
@@ -203,7 +185,7 @@ const ScoreDisplay: React.FC<ScoreDisplayProps> = ({
                 atMilestone && { color: 'white' }
               ]}
             >
-              {streak}
+              {highestStreak}
             </Text>
           </Animated.View>
           
@@ -218,14 +200,14 @@ const ScoreDisplay: React.FC<ScoreDisplayProps> = ({
                       inputRange: [0, 1],
                       outputRange: ['0%', '100%']
                     }),
-                    backgroundColor: streak % milestoneEvery === 0 
-                      ? theme.colors.warning 
-                      : theme.colors.primary
+                    backgroundColor: highestStreak % milestoneEvery === 0 
+                      ? colors.warning 
+                      : colors.primary
                   }
                 ]}
               />
               <Text style={styles.nextMilestoneText}>
-                {streak % milestoneEvery === 0 
+                {highestStreak % milestoneEvery === 0 
                   ? 'Milestone!' 
                   : `Next: ${nextMilestone}`}
               </Text>
@@ -241,14 +223,14 @@ const ScoreDisplay: React.FC<ScoreDisplayProps> = ({
       <View style={styles.compactRow}>
         {/* Score */}
         <View style={styles.scoreContainerCompact}>
-          <Icon name="star" size={14} color={theme.colors.warning} style={styles.scoreIcon} />
+          <Icon name="star" size={14} color={colors.warning} style={styles.scoreIcon} />
           <Animated.Text 
             style={[
               styles.scoreTextCompact,
               { opacity: scoreAnim }
             ]}
           >
-            {formatNumber(score)}
+            {formatNumber(score ?? dailyScore)}
           </Animated.Text>
         </View>
         
@@ -259,14 +241,14 @@ const ScoreDisplay: React.FC<ScoreDisplayProps> = ({
               styles.streakContainerCompact,
               { 
                 transform: [{ scale: streakAnim }],
-                backgroundColor: atMilestone ? theme.colors.warning : 'white'
+                backgroundColor: atMilestone ? colors.warning : 'white'
               }
             ]}
           >
             <Icon 
               name="fire" 
               size={12} 
-              color={atMilestone ? 'white' : theme.colors.primary} 
+              color={atMilestone ? 'white' : colors.primary} 
             />
             <Text 
               style={[
@@ -274,7 +256,7 @@ const ScoreDisplay: React.FC<ScoreDisplayProps> = ({
                 atMilestone && { color: 'white' }
               ]}
             >
-              {streak}
+              {highestStreak}
             </Text>
           </Animated.View>
         )}
@@ -291,9 +273,9 @@ const ScoreDisplay: React.FC<ScoreDisplayProps> = ({
                   inputRange: [0, 1],
                   outputRange: ['0%', '100%']
                 }),
-                backgroundColor: streak % milestoneEvery === 0 
-                  ? theme.colors.warning 
-                  : theme.colors.primary
+                backgroundColor: highestStreak % milestoneEvery === 0 
+                  ? colors.warning 
+                  : colors.primary
               }
             ]}
           />
@@ -315,36 +297,33 @@ const ScoreDisplay: React.FC<ScoreDisplayProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: theme.borderRadius.md,
-    ...theme.shadows.sm,
+    backgroundColor: 'transparent',
   },
   horizontal: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: theme.spacing.sm,
-    paddingHorizontal: theme.spacing.md,
+    padding: spacing.sm,
   },
   vertical: {
-    padding: theme.spacing.md,
+    padding: spacing.md,
   },
   compact: {
-    padding: theme.spacing.xs,
+    padding: spacing.xs,
   },
   scoreContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: theme.spacing.md,
+    marginRight: spacing.md,
   },
   scoreContainerVertical: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: theme.spacing.md,
+    marginBottom: spacing.md,
   },
   scoreContainerCompact: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: theme.spacing.sm,
+    marginRight: spacing.sm,
   },
   compactRow: {
     flexDirection: 'row',
@@ -353,118 +332,128 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   scoreIcon: {
-    marginRight: theme.spacing.xs,
+    marginRight: spacing.xs,
   },
   scoreText: {
     fontSize: 16,
     fontWeight: 'bold',
     fontFamily: Platform.OS === 'ios' ? 'Avenir-Heavy' : 'sans-serif-medium',
-    color: theme.colors.textDark,
+    color: colors.textPrimary,
   },
   scoreTextLarge: {
     fontSize: 24,
     fontWeight: 'bold',
     fontFamily: Platform.OS === 'ios' ? 'Avenir-Heavy' : 'sans-serif-medium',
-    color: theme.colors.textDark,
+    color: colors.textPrimary,
   },
   scoreTextCompact: {
     fontSize: 12,
     fontWeight: 'bold',
     fontFamily: Platform.OS === 'ios' ? 'Avenir-Heavy' : 'sans-serif-medium',
-    color: theme.colors.textDark,
+    color: colors.textPrimary,
   },
   streakContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'white',
-    borderRadius: theme.borderRadius.full,
+    borderRadius: borderRadius.full,
     paddingVertical: 4,
     paddingHorizontal: 8,
-    marginRight: theme.spacing.md,
-    ...theme.shadows.sm,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    elevation: 1,
   },
   streakContainerLarge: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'white',
-    borderRadius: theme.borderRadius.full,
+    borderRadius: borderRadius.full,
     paddingVertical: 6,
     paddingHorizontal: 12,
-    marginTop: theme.spacing.xs,
-    marginBottom: theme.spacing.sm,
-    ...theme.shadows.sm,
+    marginTop: spacing.xs,
+    marginBottom: spacing.sm,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    elevation: 1,
   },
   streakContainerCompact: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'white',
-    borderRadius: theme.borderRadius.full,
+    borderRadius: borderRadius.full,
     paddingVertical: 2,
     paddingHorizontal: 6,
-    ...theme.shadows.sm,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    elevation: 1,
   },
   streakText: {
     marginLeft: 4,
     fontWeight: '600',
-    fontFamily: Platform.OS === 'ios' ? 'Avenir-Heavy' : 'sans-serif-medium',
-    color: theme.colors.textDark,
+    color: colors.textPrimary,
   },
   streakTextLarge: {
     marginLeft: 6,
     fontSize: 18,
     fontWeight: 'bold',
     fontFamily: Platform.OS === 'ios' ? 'Avenir-Heavy' : 'sans-serif-medium',
-    color: theme.colors.textDark,
+    color: colors.textPrimary,
   },
   streakTextCompact: {
     marginLeft: 2,
     fontSize: 10,
     fontWeight: 'bold',
     fontFamily: Platform.OS === 'ios' ? 'Avenir-Heavy' : 'sans-serif-medium',
-    color: theme.colors.textDark,
+    color: colors.textPrimary,
   },
   streakSection: {
-    marginTop: theme.spacing.sm,
+    marginTop: spacing.sm,
   },
   sectionLabel: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: theme.colors.textMuted,
+    color: colors.textSecondary,
     marginBottom: 2,
   },
   progressContainer: {
     flex: 1,
     height: 6,
     backgroundColor: 'rgba(0, 0, 0, 0.1)',
-    borderRadius: theme.borderRadius.full,
+    borderRadius: borderRadius.full,
     overflow: 'hidden',
     position: 'relative',
   },
   progressContainerVertical: {
     height: 6,
     backgroundColor: 'rgba(0, 0, 0, 0.1)',
-    borderRadius: theme.borderRadius.full,
+    borderRadius: borderRadius.full,
     overflow: 'hidden',
     position: 'relative',
   },
   progressContainerCompact: {
     height: 3,
     backgroundColor: 'rgba(0, 0, 0, 0.1)',
-    borderRadius: theme.borderRadius.full,
+    borderRadius: borderRadius.full,
     overflow: 'hidden',
     position: 'relative',
   },
   progressFill: {
     height: '100%',
-    borderRadius: theme.borderRadius.full,
+    borderRadius: borderRadius.full,
   },
   nextMilestoneText: {
     position: 'absolute',
     right: 0,
     top: 8,
     fontSize: 10,
-    color: theme.colors.textMuted,
+    color: colors.textSecondary,
   },
 });
 

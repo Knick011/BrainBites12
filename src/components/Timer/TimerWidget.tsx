@@ -1,173 +1,339 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { ScreenTimeModule, TimerState, TimerStatus, useScreenTimeEvents } from '@/native/ScreenTimeModule';
-import { formatDuration } from '@/utils/timeUtils';
+// src/components/Timer/TimerWidget.tsx
+// ✅ ENHANCED TIMER WIDGET WITH SCREEN TIME DISPLAY
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import HybridTimerService from '../../services/HybridTimerService';
+import theme from '../../styles/theme';
 
 interface TimerWidgetProps {
-  onEarnMorePress?: () => void;
+  style?: any;
+  onPress?: () => void;
 }
 
-export const TimerWidget: React.FC<TimerWidgetProps> = ({ onEarnMorePress }) => {
-  const [timerState, setTimerState] = useState<TimerStatus | null>(null);
+interface TimerData {
+  remainingTime: number;
+  todayScreenTime: number;
+  isAppForeground: boolean;
+  isTracking: boolean;
+}
+
+export const TimerWidget: React.FC<TimerWidgetProps> = ({ style, onPress }) => {
+  const [timerData, setTimerData] = useState<TimerData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Animation values
+  const fadeAnim = React.useRef(new Animated.Value(0)).current;
+  const pulseAnim = React.useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    // Initial timer state
-    ScreenTimeModule.getTimerState().then(setTimerState);
-
-    // Subscribe to timer updates
-    const unsubscribe = useScreenTimeEvents((state) => {
-      setTimerState(state);
-    });
-
-    return unsubscribe;
+    console.log('🕐 [TimerWidget] Initializing enhanced timer widget...');
+    
+    let unsubscribe: (() => void) | null = null;
+    
+    const initializeTimer = async () => {
+      try {
+        // Initialize hybrid timer service
+        await HybridTimerService.initialize();
+        
+        // Listen for timer updates
+        unsubscribe = HybridTimerService.addListener((data: TimerData) => {
+          console.log('🕐 [TimerWidget] Timer update received:', data);
+          setTimerData(data);
+          setError(null);
+          setIsLoading(false);
+        });
+        
+        // Get initial data
+        const initialData = HybridTimerService.getCurrentData();
+        if (initialData) {
+          setTimerData(initialData);
+          setIsLoading(false);
+        }
+        
+        // Fade in animation
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 500,
+          useNativeDriver: true,
+        }).start();
+        
+      } catch (err: any) {
+        console.error('❌ [TimerWidget] Failed to initialize hybrid timer:', err);
+        setError('Timer unavailable');
+        setIsLoading(false);
+      }
+    };
+    
+    initializeTimer();
+    
+    return () => {
+      unsubscribe?.();
+    };
   }, []);
 
-  if (!timerState) return null;
+  // Pulse animation for active timer
+  useEffect(() => {
+    if (timerData?.isTracking) {
+      const pulse = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1.05,
+            duration: 1500,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 1500,
+            useNativeDriver: true,
+          }),
+        ])
+      );
+      pulse.start();
+      return () => pulse.stop();
+    }
+  }, [timerData?.isTracking]);
 
-  const getStatusIcon = (state: TimerState) => {
-    switch (state) {
-      case TimerState.RUNNING:
-        return '🟢';
-      case TimerState.PAUSED:
-        return '⏸️';
-      case TimerState.FOREGROUND:
-        return '📱';
-      case TimerState.DEBT_MODE:
-        return '⚠️';
-      default:
-        return '⚫';
+  const loadInitialState = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Try to get current data from hybrid service
+      const currentData = HybridTimerService.getCurrentData();
+      if (currentData) {
+        console.log('🕐 [TimerWidget] Using cached data from hybrid service');
+        setTimerData(currentData);
+        setError(null);
+      } else {
+        console.log('🕐 [TimerWidget] No cached data, initializing...');
+        await HybridTimerService.initialize();
+      }
+    } catch (err: any) {
+      console.error('❌ [TimerWidget] Failed to load initial state:', err);
+      setError('Timer unavailable');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const getStatusText = (state: TimerState) => {
-    switch (state) {
-      case TimerState.RUNNING:
-        return 'Running';
-      case TimerState.PAUSED:
-        return 'Paused';
-      case TimerState.FOREGROUND:
-        return 'In App';
-      case TimerState.DEBT_MODE:
-        return 'Time Up!';
-      default:
-        return 'Inactive';
-    }
+  const getStatusColor = (): string => {
+    if (!timerData) return theme.colors.textSecondary;
+    
+    if (timerData.remainingTime <= 0) return '#F44336'; // Red - no time
+    if (timerData.isAppForeground) return '#FF9800'; // Orange - paused
+    if (timerData.isTracking) return '#4CAF50'; // Green - running
+    return theme.colors.textSecondary; // Gray - paused
   };
 
-  return (
-    <View style={styles.container}>
-      {/* Time Left Section */}
-      <View style={styles.section}>
-        <Text style={styles.label}>Time Left</Text>
-        <Text style={styles.timeText}>
-          {formatDuration(timerState.remainingTime)}
-        </Text>
-      </View>
+  const getStatusIcon = (): string => {
+    if (!timerData) return 'timer-off';
+    
+    if (timerData.remainingTime <= 0) return 'alert';
+    if (timerData.isAppForeground) return 'cellphone';
+    if (timerData.isTracking) return 'play';
+    return 'pause';
+  };
 
-      {/* Status Section */}
-      <View style={styles.section}>
-        <Text style={styles.label}>Status</Text>
-        <View style={styles.statusContainer}>
-          <Text style={styles.statusIcon}>
-            {getStatusIcon(timerState.state)}
-          </Text>
-          <Text style={styles.statusText}>
-            {getStatusText(timerState.state)}
-          </Text>
+  const getStatusText = (): string => {
+    if (!timerData) return 'Timer unavailable';
+    
+    if (timerData.remainingTime <= 0) return 'No time remaining';
+    if (timerData.isAppForeground) return 'BrainBites open';
+    if (timerData.isTracking) return 'Timer running';
+    return 'Timer paused';
+  };
+
+  const formatTimeLeft = (seconds: number): string => {
+    if (seconds <= 0) return '0m left';
+    
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    
+    if (hours > 0) {
+      return `${hours}h ${minutes}m left`;
+    }
+    return `${minutes}m left`;
+  };
+
+  const formatScreenTime = (seconds: number): string => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    
+    if (hours > 0) {
+      return `${hours}h ${minutes}m used today`;
+    }
+    return `${minutes}m used today`;
+  };
+
+  if (isLoading) {
+    return (
+      <View style={[styles.container, style]}>
+        <View style={[styles.timerWidget, styles.loadingState]}>
+          <View style={styles.loadingContent}>
+            <Icon name="loading" size={20} color={theme.colors.textSecondary} />
+            <Text style={styles.loadingText}>Loading timer...</Text>
+          </View>
         </View>
       </View>
+    );
+  }
 
-      {/* Screen Time Section */}
-      <View style={styles.section}>
-        <Text style={styles.label}>Screen Time Today</Text>
-        <Text style={styles.timeText}>
-          {formatDuration(timerState.todayScreenTime)}
-        </Text>
-      </View>
+  if (error || !timerData) {
+    return (
+      <TouchableOpacity 
+        style={[styles.container, style]} 
+        onPress={loadInitialState}
+        activeOpacity={0.7}
+      >
+        <View style={[styles.timerWidget, styles.errorState]}>
+          <Icon name="refresh" size={16} color={theme.colors.textSecondary} />
+          <Text style={styles.errorText}>Tap to retry</Text>
+        </View>
+      </TouchableOpacity>
+    );
+  }
 
-      {/* Progress Bar */}
-      <View style={styles.progressContainer}>
-        <View 
-          style={[
-            styles.progressBar,
-            { width: `${(timerState.remainingTime / (8 * 3600)) * 100}%` }
-          ]} 
-        />
-      </View>
-
-      {/* Action Button */}
-      {timerState.remainingTime < 3600 && ( // Show when less than 1 hour remains
-        <TouchableOpacity 
-          style={styles.button}
-          onPress={onEarnMorePress}
-        >
-          <Text style={styles.buttonText}>Earn More Time</Text>
-        </TouchableOpacity>
-      )}
-    </View>
+  return (
+    <Animated.View 
+      style={[
+        styles.container, 
+        style, 
+        { 
+          opacity: fadeAnim,
+          transform: [{ scale: pulseAnim }]
+        }
+      ]}
+    >
+      <TouchableOpacity 
+        style={styles.timerWidget}
+        onPress={onPress}
+        activeOpacity={0.8}
+      >
+        <View style={styles.timeDisplay}>
+          <View style={styles.timeRow}>
+            <Text style={styles.timeLeft}>
+              {formatTimeLeft(timerData.remainingTime)}
+            </Text>
+            <View style={styles.statusBadge}>
+              <View 
+                style={[
+                  styles.statusDot, 
+                  { backgroundColor: getStatusColor() }
+                ]} 
+              />
+              <Text style={[styles.statusText, { color: getStatusColor() }]}>
+                {getStatusText()}
+              </Text>
+            </View>
+          </View>
+          
+          <View style={styles.screenTimeRow}>
+            <Icon name="clock-outline" size={14} color={theme.colors.textSecondary} />
+            <Text style={styles.screenTime}>
+              {formatScreenTime(timerData.todayScreenTime)}
+            </Text>
+          </View>
+        </View>
+        
+        <View style={styles.statusIndicator}>
+          <Icon 
+            name={getStatusIcon()} 
+            size={20} 
+            color={getStatusColor()} 
+            style={styles.statusIcon}
+          />
+        </View>
+      </TouchableOpacity>
+    </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
+    marginVertical: 8,
+  },
+  timerWidget: {
+    backgroundColor: 'white',
+    borderRadius: 12,
     padding: 16,
-    margin: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    ...theme.shadows.small,
+    borderLeftWidth: 4,
+    borderLeftColor: theme.colors.primary,
   },
-  section: {
-    marginBottom: 12,
+  timeDisplay: {
+    flex: 1,
   },
-  label: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 4,
+  timeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
   },
-  timeText: {
-    fontSize: 24,
+  timeLeft: {
+    fontSize: 16,
     fontWeight: 'bold',
-    color: '#000',
+    color: theme.colors.textPrimary,
   },
-  statusContainer: {
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 4,
+  },
+  statusText: {
+    fontSize: 10,
+    fontWeight: '500',
+  },
+  screenTimeRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  statusIcon: {
-    fontSize: 20,
-    marginRight: 8,
+  screenTime: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    marginLeft: 4,
   },
-  statusText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#000',
-  },
-  progressContainer: {
-    height: 6,
-    backgroundColor: '#eee',
-    borderRadius: 3,
-    marginVertical: 12,
-    overflow: 'hidden',
-  },
-  progressBar: {
-    height: '100%',
-    backgroundColor: '#4CAF50',
-    borderRadius: 3,
-  },
-  button: {
-    backgroundColor: '#2196F3',
-    borderRadius: 8,
-    padding: 12,
+  statusIndicator: {
     alignItems: 'center',
-    marginTop: 8,
+    marginLeft: 12,
   },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+  statusIcon: {
+    opacity: 0.8,
   },
-}); 
+  loadingState: {
+    justifyContent: 'center',
+  },
+  loadingContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    marginLeft: 8,
+  },
+  errorState: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+  },
+  errorText: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    marginLeft: 8,
+  },
+});

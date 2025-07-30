@@ -1,5 +1,6 @@
 // src/services/EnhancedScoreService.ts - TypeScript version with daily goals tracking
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import DailyGoalsService from './DailyGoalsService';
 import { UserStats } from '../types';
 
 interface ScoreInfo {
@@ -265,6 +266,24 @@ class EnhancedScoreService {
     
     this.calculateStreakLevel();
     await this.saveAllData();
+    
+    // Update daily goals progress
+    try {
+      await DailyGoalsService.updateProgress({
+        isCorrect,
+        difficulty,
+        category: metadata?.category,
+        currentStreak: this.currentStreak,
+        todayAccuracy: this.todayStats.correctAnswers > 0 
+          ? Math.round((this.todayStats.correctAnswers / this.todayStats.totalQuestions) * 100)
+          : 0,
+        todayQuestions: this.todayStats.totalQuestions
+      });
+      
+      console.log('✅ [EnhancedScoreService] Updated daily goals progress');
+    } catch (error) {
+      console.error('❌ [EnhancedScoreService] Failed to update daily goals:', error);
+    }
     
     return {
       pointsEarned,
