@@ -947,7 +947,7 @@ export const questionsCSV = `id,category,question,optionA,optionB,optionC,option
 945,Technology,What company owns Beats Electronics?,Sony,Apple,Bose,Samsung,B,Apple acquired Beats Electronics in 2014,Easy
 946,Science,What is the smallest planet in our solar system?,Mars,Mercury,Pluto,Venus,B,Mercury is the smallest planet in our solar system,Easy
 947,Gaming,Which game is known for "360 no scope"?,Fortnite,Call of Duty,Halo,Counter-Strike,B,360 no scope originated in Call of Duty as a trick shot,Easy
-948,Math,What is the midpoint formula?,((x₁+x₂)/2,(y₁+y₂)/2),((x₁-x₂)/2,(y₁-y₂)/2),(x₁x₂,y₁y₂),√((x₁-x₂)²+(y₁-y₂)²),A,Midpoint = ((x₁+x₂)/2,(y₁+y₂)/2),Medium
+948,Math,What is the midpoint formula?,((x₁+x₂)/2,(y₁+y₂)/2),((x₁-x₂)/2,(y₁-y₂)/2),(x₁+y₁,x₂+y₂),√((x₁-x₂)²+(y₁-y₂)²),A,Midpoint = ((x₁+x₂)/2,(y₁+y₂)/2),Medium
 949,Technology,What does NoSQL stand for?,No SQL,Not Only SQL,Non-Sequential Query Language,New SQL,B,NoSQL stands for Not Only SQL,Medium
 950,Music,Which artist goes by "Posty"?,Post Malone,Doja Cat,Lil Nas X,Machine Gun Kelly,A,Post Malone is often called Posty by fans,Easy
 951,Science,What gas is released when you mix vinegar and baking soda?,Oxygen,Hydrogen,Carbon dioxide,Nitrogen,C,Mixing vinegar and baking soda produces carbon dioxide,Easy
@@ -1049,7 +1049,607 @@ export const questionsCSV = `id,category,question,optionA,optionB,optionC,option
 1047,Math,What is the common ratio in geometric sequence 2 6 18 54?,2,3,4,6,B,Each term is multiplied by 3 so common ratio is 3,Easy
 1048,Music,Which artist sang "Levitating"?,Ariana Grande,Dua Lipa,Doja Cat,Olivia Rodrigo,B,Dua Lipa released "Levitating" from her album Future Nostalgia,Easy
 1049,Food,What pepper is chipotle made from?,Habanero,Jalapeño,Serrano,Poblano,B,Chipotle is smoke-dried jalapeño pepper,Medium
-1050,Technology,What port does SSH typically use?,21,22,80,443,B,SSH (Secure Shell) typically uses port 22,Medium`;
+1050,Technology,What port does SSH typically use?,21,22,80,443,B,SSH (Secure Shell) typically uses port 22,Medium
+1051,Science,What is the chemical symbol for sodium?,Na,So,Sd,S,A,Na (from Latin natrium) is the chemical symbol for sodium,Easy
+1052,History,Which ancient civilization built Machu Picchu?,Aztec,Maya,Inca,Olmec,C,The Inca Empire built Machu Picchu in the 15th century,Easy
+1053,Math,What is 15 squared?,200,215,225,250,C,15 squared equals 15 × 15 = 225,Easy
+1054,Geography,What is the deepest ocean trench?,Java Trench,Puerto Rico Trench,Mariana Trench,Peru-Chile Trench,C,The Mariana Trench is the deepest part of the ocean,Easy
+1055,Science,What type of energy is stored in a stretched spring?,Kinetic,Potential,Thermal,Chemical,B,A stretched spring stores elastic potential energy,Easy
+1056,Food,Which country is the largest producer of coffee?,Colombia,Vietnam,Brazil,Ethiopia,C,Brazil produces about one-third of the world's coffee,Medium
+1057,Sports,How many players are on a cricket team?,9,10,11,12,C,A cricket team has 11 players on the field,Easy
+1058,Literature,Who wrote "Robinson Crusoe"?,Daniel Defoe,Jonathan Swift,Samuel Richardson,Henry Fielding,A,Daniel Defoe wrote Robinson Crusoe published in 1719,Medium
+1059,Science,What is the SI unit of force?,Joule,Newton,Pascal,Watt,B,The newton (N) is the SI unit of force,Easy
+1060,History,In which year did World War I begin?,1912,1913,1914,1915,C,World War I began in 1914,Easy
+1061,Math,What is the value of pi rounded to 3 decimal places?,3.141,3.142,3.143,3.144,B,Pi rounded to 3 decimal places is 3.142,Easy
+1062,Geography,Which desert is located in northern China and Mongolia?,Sahara,Gobi,Atacama,Kalahari,B,The Gobi Desert spans northern China and southern Mongolia,Easy
+1063,Science,What type of rock is marble?,Igneous,Sedimentary,Metamorphic,Volcanic,C,Marble is a metamorphic rock formed from limestone,Easy
+1064,Food,What is the main ingredient in traditional Japanese miso soup?,Seaweed,Soybean paste,Fish stock,Rice,B,Miso soup is made primarily with fermented soybean paste,Easy
+1065,Technology,What does ROM stand for in computers?,Random Operating Memory,Read Only Memory,Run On Memory,Real Operating Memory,B,ROM stands for Read Only Memory,Easy
+1066,Science,Which planet has the Great Red Spot?,Mars,Jupiter,Saturn,Neptune,B,Jupiter's Great Red Spot is a giant storm,Easy
+1067,History,Who invented the light bulb?,Nikola Tesla,Thomas Edison,Benjamin Franklin,Alexander Graham Bell,B,Thomas Edison invented the practical incandescent light bulb,Easy
+1068,Math,What is the sum of angles in a quadrilateral?,180°,270°,360°,450°,C,The sum of angles in any quadrilateral is 360 degrees,Easy
+1069,Geography,What is the longest river in Europe?,Danube,Rhine,Volga,Dnieper,C,The Volga River is Europe's longest river,Medium
+1070,Science,What gas is used to fill balloons to make them float?,Oxygen,Nitrogen,Helium,Hydrogen,C,Helium is commonly used to fill floating balloons,Easy
+1071,Animals,Which mammal has the longest pregnancy?,Elephant,Whale,Giraffe,Rhinoceros,A,African elephants have a pregnancy lasting about 22 months,Easy
+1072,Sports,What is the diameter of a standard basketball?,8 inches,9 inches,9.43 inches,10 inches,C,A standard basketball has a diameter of 9.43 inches,Medium
+1073,Science,What is the study of mushrooms called?,Mycology,Bryology,Phycology,Lichenology,A,Mycology is the study of fungi including mushrooms,Medium
+1074,History,Which empire was ruled by Genghis Khan?,Ottoman,Mongol,Persian,Byzantine,B,Genghis Khan founded and ruled the Mongol Empire,Easy
+1075,Math,What is 3/4 as a decimal?,0.25,0.50,0.75,1.00,C,3/4 equals 0.75 as a decimal,Easy
+1076,Geography,Which African country was formerly known as Rhodesia?,Zambia,Zimbabwe,Botswana,Namibia,B,Zimbabwe was formerly called Rhodesia,Medium
+1077,Science,What is the pH scale range?,0-7,0-10,0-14,0-20,C,The pH scale ranges from 0 to 14,Easy
+1078,Food,What grain is traditionally used to make risotto?,Barley,Quinoa,Rice,Wheat,C,Risotto is made with specific varieties of rice,Easy
+1079,Technology,What does JPEG stand for?,Joint Photographic Experts Group,Java Picture Extension Group,Joint Picture Extension Group,Java Photographic Experts Group,A,JPEG stands for Joint Photographic Experts Group,Medium
+1080,Science,How many bones are in a human foot?,26,27,28,29,A,The human foot contains 26 bones,Medium
+1081,History,What year did the Roman Empire fall?,376 AD,476 AD,576 AD,676 AD,B,The Western Roman Empire fell in 476 AD,Medium
+1082,Math,What is the next number: 1 1 2 3 5 8?,11,12,13,14,C,This is the Fibonacci sequence; next is 8+5=13,Easy
+1083,Geography,What is the smallest country in South America?,Uruguay,Suriname,Guyana,French Guiana,B,Suriname is the smallest country in South America,Hard
+1084,Science,What vitamin is essential for blood clotting?,Vitamin A,Vitamin C,Vitamin K,Vitamin E,C,Vitamin K is essential for blood clotting,Medium
+1085,Animals,How many hearts does an earthworm have?,1,3,5,7,C,Earthworms have 5 pairs of hearts (10 total),Hard
+1086,Sports,What is the maximum score in gymnastics?,9.0,9.5,10.0,No maximum,D,Modern gymnastics has no maximum score under current rules,Medium
+1087,Science,What element has the highest melting point?,Iron,Tungsten,Carbon,Titanium,B,Tungsten has the highest melting point of all elements,Hard
+1088,History,Who was the first female Prime Minister of the UK?,Margaret Thatcher,Theresa May,Elizabeth I,Victoria,A,Margaret Thatcher was the UK's first female Prime Minister,Easy
+1089,Math,What is the cube root of 64?,2,3,4,5,C,The cube root of 64 is 4 (4×4×4=64),Easy
+1090,Geography,Which strait separates Asia and North America?,Bering Strait,Drake Passage,Strait of Hormuz,Strait of Malacca,A,The Bering Strait separates Russia and Alaska,Easy
+1091,Science,What is the most abundant element in the universe?,Oxygen,Helium,Hydrogen,Carbon,C,Hydrogen is the most abundant element in the universe,Easy
+1092,Food,What vegetable is also known as lady's finger?,Zucchini,Okra,Eggplant,Cucumber,B,Okra is commonly called lady's finger,Medium
+1093,Technology,What does DNS stand for?,Domain Name System,Digital Network Service,Data Network System,Direct Name Service,A,DNS stands for Domain Name System,Medium
+1094,Science,How many noble gases are there?,4,5,6,7,C,There are 6 noble gases in the periodic table,Medium
+1095,History,In which century was the printing press invented?,13th,14th,15th,16th,C,The printing press was invented in the 15th century,Easy
+1096,Math,What is 2 to the power of 8?,128,256,512,1024,B,2 to the power of 8 equals 256,Easy
+1097,Geography,What is the capital of Morocco?,Casablanca,Rabat,Marrakech,Fez,B,Rabat is the capital city of Morocco,Medium
+1098,Science,What type of electromagnetic radiation has the longest wavelength?,Gamma rays,X-rays,Microwaves,Radio waves,D,Radio waves have the longest wavelength in the electromagnetic spectrum,Medium
+1099,Animals,Which animal has blue blood?,Octopus,Elephant,Giraffe,Shark,A,Octopuses have blue blood due to copper-based hemocyanin,Medium
+1100,Sports,How many squares are on a chess board?,32,48,64,81,C,A chess board has 64 squares (8×8),Easy
+1101,Science,What is the atomic number of carbon?,4,6,8,12,B,Carbon has atomic number 6,Easy
+1102,History,Which civilization invented paper?,Greek,Roman,Chinese,Egyptian,C,The Chinese invented paper around 100 BC,Easy
+1103,Math,What is the perimeter of a square with side length 7?,14,21,28,49,C,Perimeter = 4 × side length = 4 × 7 = 28,Easy
+1104,Geography,Which country has the most islands?,Canada,Finland,Sweden,Norway,C,Sweden has over 260000 islands,Hard
+1105,Science,What is the freezing point of water in Fahrenheit?,0°F,32°F,100°F,212°F,B,Water freezes at 32 degrees Fahrenheit,Easy
+1106,Food,What nut is used to make marzipan?,Walnut,Almond,Cashew,Pistachio,B,Marzipan is made from ground almonds and sugar,Easy
+1107,Technology,What does HTTP stand for?,Hyper Text Transfer Protocol,High Tech Transfer Protocol,Hyper Type Transfer Protocol,Home Text Transfer Protocol,A,HTTP stands for Hyper Text Transfer Protocol,Easy
+1108,Science,Which blood type is the universal donor?,A,B,AB,O,D,Type O negative is the universal blood donor type,Easy
+1109,History,What year did Columbus reach the Americas?,1490,1491,1492,1493,C,Christopher Columbus reached the Americas in 1492,Easy
+1110,Math,What is 7 factorial (7!)?,720,2520,5040,10080,C,7! = 7×6×5×4×3×2×1 = 5040,Medium
+1111,Geography,What is the largest lake in South America?,Lake Titicaca,Lake Maracaibo,Lake Argentina,Lake Nicaragua,B,Lake Maracaibo in Venezuela is South America's largest lake,Hard
+1112,Science,What is the speed of sound in air at room temperature?,243 m/s,343 m/s,443 m/s,543 m/s,B,Sound travels at approximately 343 meters per second in air,Medium
+1113,Animals,Which bird builds the largest nest?,Eagle,Stork,Albatross,Bald Eagle,D,Bald eagles build the largest tree nests,Medium
+1114,Sports,How many points is a free throw worth in basketball?,1,2,3,4,A,A free throw is worth 1 point in basketball,Easy
+1115,Science,What type of acid is in your stomach?,Sulfuric acid,Nitric acid,Hydrochloric acid,Acetic acid,C,The stomach produces hydrochloric acid for digestion,Easy
+1116,History,Which war was fought between 1861-1865 in America?,Revolutionary War,Civil War,Spanish-American War,War of 1812,B,The American Civil War was fought from 1861-1865,Easy
+1117,Math,What is the median of: 2 5 7 9 12?,5,7,9,12,B,The median of 2 5 7 9 12 is 7 (middle value),Easy
+1118,Geography,Which European country is shaped like a boot?,Greece,Spain,Italy,Portugal,C,Italy is famously shaped like a boot,Easy
+1119,Science,What metal is the best conductor of electricity?,Gold,Silver,Copper,Aluminum,B,Silver is the best electrical conductor among metals,Medium
+1120,Food,What type of pastry is a croissant?,Puff pastry,Choux pastry,Laminated dough,Shortcrust,C,Croissants are made with laminated yeast dough,Medium
+1121,Technology,What does API stand for?,Application Programming Interface,Advanced Programming Interface,Application Process Interface,Automated Programming Interface,A,API stands for Application Programming Interface,Easy
+1122,Science,How many pairs of ribs do humans have?,10,11,12,13,C,Humans have 12 pairs of ribs,Easy
+1123,History,What year did the Berlin Wall fall?,1987,1988,1989,1990,C,The Berlin Wall fell on November 9 1989,Easy
+1124,Math,What is the area of a triangle with base 10 and height 6?,30,40,50,60,A,Area = (base × height)/2 = (10 × 6)/2 = 30,Easy
+1125,Geography,What is the highest mountain in Africa?,Mount Kenya,Mount Kilimanjaro,Mount Stanley,Mount Meru,B,Mount Kilimanjaro is Africa's highest peak,Easy
+1126,Science,What organ produces red blood cells?,Heart,Liver,Bone marrow,Spleen,C,Bone marrow produces red blood cells,Easy
+1127,Animals,Which animal can regenerate lost limbs?,Snake,Lizard,Starfish,Turtle,C,Starfish can regenerate lost arms,Easy
+1128,Sports,What shape is a rugby ball?,Sphere,Oval,Cylinder,Cube,B,A rugby ball has an oval (prolate spheroid) shape,Easy
+1129,Science,What is the chemical formula for methane?,CH2,CH3,CH4,C2H4,C,Methane has the chemical formula CH4,Easy
+1130,History,Who painted the Sistine Chapel ceiling?,Leonardo da Vinci,Michelangelo,Raphael,Botticelli,B,Michelangelo painted the Sistine Chapel ceiling,Easy
+1131,Math,What is 0.25 as a fraction?,1/2,1/3,1/4,1/5,C,0.25 equals 1/4 as a fraction,Easy
+1132,Geography,Which ocean is Bermuda located in?,Pacific,Atlantic,Indian,Arctic,B,Bermuda is located in the Atlantic Ocean,Easy
+1133,Science,What type of lens is used to correct nearsightedness?,Convex,Concave,Bifocal,Progressive,B,Concave lenses correct nearsightedness (myopia),Medium
+1134,Food,What is the main ingredient in borscht?,Cabbage,Potato,Beet,Carrot,C,Borscht is a soup made primarily with beets,Easy
+1135,Technology,What does GPU stand for?,General Processing Unit,Graphics Processing Unit,Global Processing Unit,Graphics Program Unit,B,GPU stands for Graphics Processing Unit,Easy
+1136,Science,Which organ produces adrenaline?,Thyroid,Adrenal glands,Pituitary,Pancreas,B,The adrenal glands produce adrenaline (epinephrine),Easy
+1137,History,What ancient wonder was located in Alexandria?,Pyramid,Lighthouse,Gardens,Statue,B,The Lighthouse of Alexandria was one of the Seven Wonders,Medium
+1138,Math,What is the value of x: 3x + 9 = 21?,2,3,4,5,C,3x + 9 = 21 means 3x = 12 so x = 4,Easy
+1139,Geography,What is the largest city in Australia?,Melbourne,Sydney,Brisbane,Perth,B,Sydney is Australia's largest city by population,Easy
+1140,Science,What is the half-life of carbon-14?,573 years,5730 years,57300 years,573000 years,B,Carbon-14 has a half-life of approximately 5730 years,Medium
+1141,Animals,Which snake is the longest in the world?,King cobra,Anaconda,Reticulated python,Boa constrictor,C,The reticulated python is the longest snake species,Medium
+1142,Sports,How many lanes does an Olympic swimming pool have?,6,8,10,12,B,Olympic swimming pools have 8 lanes,Easy
+1143,Science,What causes rust?,Water,Oxygen,Both water and oxygen,Carbon dioxide,C,Rust forms when iron reacts with both water and oxygen,Easy
+1144,History,Which country first gave women the right to vote?,USA,UK,New Zealand,Australia,C,New Zealand gave women voting rights in 1893,Medium
+1145,Math,What is the circumference of a circle with radius 5?,5π,10π,15π,20π,B,Circumference = 2πr = 2π(5) = 10π,Easy
+1146,Geography,What is the driest continent?,Africa,Australia,Antarctica,Asia,C,Antarctica is the driest continent receiving minimal precipitation,Medium
+1147,Science,What element makes up most of Earth's core?,Aluminum,Iron,Nickel,Silicon,B,Earth's core is primarily composed of iron,Easy
+1148,Food,What spice is derived from tree bark?,Nutmeg,Cinnamon,Cloves,Cardamom,B,Cinnamon comes from the inner bark of trees,Easy
+1149,Technology,What does LCD stand for?,Light Crystal Display,Liquid Crystal Display,Light Current Display,Liquid Carbon Display,B,LCD stands for Liquid Crystal Display,Easy
+1150,Science,How many calories are in one gram of protein?,2,4,7,9,B,One gram of protein contains 4 calories,Easy
+1151,History,In which year did the Titanic sink?,1910,1911,1912,1913,C,The Titanic sank on April 15 1912,Easy
+1152,Math,What type of angle is exactly 90 degrees?,Acute,Right,Obtuse,Straight,B,A right angle measures exactly 90 degrees,Easy
+1153,Geography,Which country is home to the Amazon rainforest?,Colombia,Peru,Brazil,Venezuela,C,Brazil contains about 60% of the Amazon rainforest,Easy
+1154,Science,What is the most common blood type?,A+,B+,O+,AB+,C,O positive is the most common blood type,Easy
+1155,Animals,How many eyes does a bee have?,2,3,4,5,D,Bees have 5 eyes: 2 compound and 3 simple eyes,Medium
+1156,Sports,What is par in golf?,Average score,Perfect score,Expected score,Maximum score,C,Par is the expected number of strokes for a hole,Easy
+1157,Science,What gas is produced by yeast during fermentation?,Oxygen,Nitrogen,Carbon dioxide,Methane,C,Yeast produces carbon dioxide during fermentation,Easy
+1158,History,Who was the first Emperor of China?,Qin Shi Huang,Han Wu Di,Tang Taizong,Ming Hongwu,A,Qin Shi Huang was the first Emperor of unified China,Medium
+1159,Math,What is log₁₀(100)?,1,2,3,10,B,log₁₀(100) = 2 because 10² = 100,Easy
+1160,Geography,What is the smallest continent by population?,Antarctica,Australia,South America,Europe,A,Antarctica has the smallest population (research stations only),Easy
+1161,Science,What type of sugar is found in milk?,Glucose,Fructose,Lactose,Sucrose,C,Lactose is the natural sugar found in milk,Easy
+1162,Food,What is traditionally the main protein in a Wellington dish?,Chicken,Pork,Beef,Lamb,C,Beef Wellington traditionally uses beef tenderloin,Easy
+1163,Technology,What does VR stand for?,Virtual Reality,Visual Reality,Virtual Response,Video Reality,A,VR stands for Virtual Reality,Easy
+1164,Science,How many ventricles are in the human brain?,2,3,4,5,C,The human brain has 4 ventricles,Medium
+1165,History,Which dynasty built most of the Great Wall of China?,Qin,Han,Ming,Tang,C,The Ming Dynasty built most of the current Great Wall,Medium
+1166,Math,What is 15% of 80?,8,10,12,14,C,15% of 80 = 0.15 × 80 = 12,Easy
+1167,Geography,What sea lies between Jordan and Israel?,Red Sea,Dead Sea,Mediterranean Sea,Black Sea,B,The Dead Sea lies between Jordan and Israel,Easy
+1168,Science,What is the study of viruses called?,Virology,Bacteriology,Pathology,Immunology,A,Virology is the study of viruses,Easy
+1169,Animals,Which big cat cannot roar?,Cheetah,Lion,Tiger,Leopard,A,Cheetahs cannot roar but can purr,Easy
+1170,Sports,How many players are on a water polo team in the water?,5,6,7,8,C,Water polo teams have 7 players in the water at once,Medium
+1171,Science,What element is the primary component of steel?,Carbon,Iron,Chromium,Nickel,B,Steel is primarily iron with small amounts of carbon,Easy
+1172,History,What year did World War II end?,1944,1945,1946,1947,B,World War II ended in 1945,Easy
+1173,Math,What is the mode of: 2 3 3 4 5 5 5 6?,3,4,5,6,C,The mode is 5 (appears most frequently),Easy
+1174,Geography,Which Asian country is an archipelago of over 17000 islands?,Philippines,Indonesia,Japan,Malaysia,B,Indonesia consists of over 17000 islands,Medium
+1175,Science,What type of electromagnetic radiation do we see?,Infrared,Visible light,Ultraviolet,X-rays,B,Visible light is the only electromagnetic radiation we can see,Easy
+1176,Food,What type of cuisine is paella from?,Italian,Spanish,Portuguese,French,B,Paella is a traditional Spanish rice dish,Easy
+1177,Technology,What does IoT stand for?,Internet of Things,Integrated Online Technology,Internet of Technology,Internal Operating Things,A,IoT stands for Internet of Things,Easy
+1178,Science,How many chromosomes do fruit flies have?,4,8,16,32,B,Fruit flies (Drosophila) have 8 chromosomes,Hard
+1179,History,Which explorer discovered the sea route to India?,Columbus,Vasco da Gama,Magellan,Drake,B,Vasco da Gama discovered the sea route to India in 1498,Medium
+1180,Math,What is the hypotenuse of a right triangle with sides 3 and 4?,5,6,7,8,A,Using Pythagorean theorem: √(3²+4²) = √25 = 5,Easy
+1181,Geography,What is the capital of New Zealand?,Auckland,Wellington,Christchurch,Hamilton,B,Wellington is the capital of New Zealand,Easy
+1182,Science,What organ is affected by hepatitis?,Heart,Liver,Kidney,Pancreas,B,Hepatitis is inflammation of the liver,Easy
+1183,Animals,What is a group of owls called?,Flock,Parliament,Murder,Colony,B,A group of owls is called a parliament,Medium
+1184,Sports,How many periods are in a basketball game?,2,3,4,5,C,Basketball games have 4 quarters (periods),Easy
+1185,Science,What is the densest natural element on Earth?,Gold,Lead,Osmium,Platinum,C,Osmium is the densest naturally occurring element,Hard
+1186,History,Who invented the airplane?,Wright Brothers,Santos Dumont,Glenn Curtiss,Louis Blériot,A,The Wright Brothers invented the first successful airplane,Easy
+1187,Math,What is 5⁴?,125,525,625,1025,C,5⁴ = 5×5×5×5 = 625,Medium
+1188,Geography,Which European capital is built on 14 islands?,Copenhagen,Stockholm,Amsterdam,Venice,B,Stockholm is built on 14 islands,Medium
+1189,Science,What type of energy is thunder?,Light,Sound,Heat,Electrical,B,Thunder is the sound produced by lightning,Easy
+1190,Food,What herb is the main ingredient in chimichurri?,Basil,Parsley,Cilantro,Oregano,B,Chimichurri sauce is primarily made with parsley,Medium
+1191,Technology,What was the first mass-produced car model?,Model A,Model T,Model S,Beetle,B,The Ford Model T was the first mass-produced car,Easy
+1192,Science,How many lobes does the human liver have?,2,3,4,5,C,The human liver has 4 lobes,Medium
+1193,History,Which ancient city was buried by Mount Vesuvius?,Rome,Pompeii,Naples,Herculaneum,B,Pompeii was buried by Mount Vesuvius in 79 AD,Easy
+1194,Math,What is the square root of 169?,11,12,13,14,C,The square root of 169 is 13,Easy
+1195,Geography,What is the longest river in Asia?,Yellow River,Mekong,Ganges,Yangtze,D,The Yangtze River is Asia's longest river,Medium
+1196,Science,What is the SI unit of temperature?,Celsius,Fahrenheit,Kelvin,Rankine,C,Kelvin is the SI unit of temperature,Easy
+1197,Animals,Which animal has the highest blood pressure?,Elephant,Giraffe,Blue whale,Rhinoceros,B,Giraffes have the highest blood pressure due to their height,Medium
+1198,Sports,How many holes are on a standard golf course?,9,12,18,36,C,A standard golf course has 18 holes,Easy
+1199,Science,What element has the symbol Fe?,Fluorine,Iron,Fermium,Francium,B,Fe is the chemical symbol for iron (from Latin ferrum),Easy
+1200,History,In which year did man first walk on the moon?,1967,1968,1969,1970,C,Neil Armstrong walked on the moon in 1969,Easy
+1201,Science,What is the center of an atom called?,Electron,Proton,Nucleus,Neutron,C,The nucleus is the central core of an atom containing protons and neutrons,Easy
+1202,Science,What gas do humans breathe out?,Oxygen,Nitrogen,Carbon dioxide,Hydrogen,C,Humans exhale carbon dioxide as a waste product of respiration,Easy
+1203,Science,What is water made of?,Hydrogen and oxygen,Carbon and oxygen,Nitrogen and hydrogen,Helium and oxygen,A,Water (H2O) is made of two hydrogen atoms and one oxygen atom,Easy
+1204,Science,What organ pumps blood through the body?,Brain,Liver,Heart,Lungs,C,The heart pumps blood throughout the circulatory system,Easy
+1205,Science,What is the closest star to Earth?,Proxima Centauri,Alpha Centauri,Sirius,The Sun,D,The Sun is our closest star at about 93 million miles away,Easy
+1206,Science,What do we call a baby frog?,Tadpole,Larvae,Puppy,Cub,A,A baby frog is called a tadpole,Easy
+1207,Science,How many bones are in an adult human body?,106,206,306,406,B,An adult human has 206 bones,Easy
+1208,Science,What is the largest planet in our solar system?,Saturn,Jupiter,Uranus,Neptune,B,Jupiter is the largest planet in our solar system,Easy
+1209,Science,What makes plants green?,Carotene,Chlorophyll,Melanin,Hemoglobin,B,Chlorophyll is the green pigment in plants used for photosynthesis,Easy
+1210,Science,What is the smallest unit of life?,Atom,Molecule,Cell,Organ,C,The cell is the smallest unit of life,Easy
+1211,Science,How many legs does an insect have?,4,6,8,10,B,All insects have 6 legs,Easy
+1212,Science,What is frozen water called?,Steam,Ice,Vapor,Frost,B,Ice is the solid form of water,Easy
+1213,Science,Which planet is known as Earth's twin?,Mars,Venus,Mercury,Jupiter,B,Venus is often called Earth's twin due to similar size,Easy
+1214,Science,What organ helps you breathe?,Heart,Stomach,Lungs,Kidney,C,The lungs are the primary organs of breathing,Easy
+1215,Science,What do bees collect from flowers?,Leaves,Nectar,Seeds,Petals,B,Bees collect nectar from flowers to make honey,Easy
+1216,Science,How many teeth does an adult human typically have?,28,30,32,36,C,Adults typically have 32 teeth including wisdom teeth,Easy
+1217,Science,What is the hardest substance in the human body?,Bone,Cartilage,Tooth enamel,Fingernails,C,Tooth enamel is the hardest substance in the human body,Easy
+1218,Science,What vitamin do we get from the sun?,Vitamin A,Vitamin B,Vitamin C,Vitamin D,D,Our skin produces vitamin D when exposed to sunlight,Easy
+1219,Science,What is a group of stars called?,Galaxy,Constellation,Solar system,Universe,B,A constellation is a group of stars forming a pattern,Easy
+1220,Science,What type of animal is a dolphin?,Fish,Mammal,Amphibian,Reptile,B,Dolphins are marine mammals not fish,Easy
+1221,Science,How many chambers does a human heart have?,2,3,4,5,C,The human heart has 4 chambers: 2 atria and 2 ventricles,Easy
+1222,Science,What is the process of water turning into vapor called?,Condensation,Evaporation,Precipitation,Sublimation,B,Evaporation is when liquid water turns into water vapor,Easy
+1223,Science,Which organ filters waste from blood?,Heart,Liver,Kidney,Stomach,C,Kidneys filter waste products from the blood,Easy
+1224,Science,What gives blood its red color?,Iron,Hemoglobin,Oxygen,Plasma,B,Hemoglobin in red blood cells gives blood its red color,Easy
+1225,Science,How many minutes does it take for sunlight to reach Earth?,4,8,12,16,B,It takes about 8 minutes for sunlight to reach Earth,Easy
+1226,Science,What is the study of living things called?,Chemistry,Biology,Physics,Geology,B,Biology is the study of living organisms,Easy
+1227,Science,What type of energy comes from the sun?,Nuclear,Solar,Wind,Geothermal,B,Solar energy comes from the sun,Easy
+1228,Science,What is the largest bone in the human body?,Skull,Spine,Femur,Ribs,C,The femur (thighbone) is the largest bone in the human body,Easy
+1229,Science,What do we call animals that eat only plants?,Carnivores,Herbivores,Omnivores,Insectivores,B,Herbivores are animals that eat only plants,Easy
+1230,Science,What is the outer layer of Earth called?,Core,Mantle,Crust,Atmosphere,C,The crust is Earth's outermost solid layer,Easy
+1231,Science,How many eyes does a spider typically have?,2,4,6,8,D,Most spiders have 8 eyes,Easy
+1232,Science,What gas do plants produce during photosynthesis?,Carbon dioxide,Nitrogen,Oxygen,Hydrogen,C,Plants produce oxygen during photosynthesis,Easy
+1233,Science,What is the fastest-moving muscle in the human body?,Heart,Tongue,Eye,Finger,C,The eye muscles are the fastest-moving in the human body,Easy
+1234,Science,What percentage of Earth's surface is covered by water?,50%,60%,70%,80%,C,About 70% of Earth's surface is covered by water,Easy
+1235,Science,What is a scientist who studies rocks called?,Biologist,Geologist,Meteorologist,Archaeologist,B,A geologist studies rocks and Earth's structure,Easy
+1236,Science,How many planets in our solar system have rings?,1,2,3,4,D,Four planets have rings: Jupiter Saturn Uranus and Neptune,Easy
+1237,Science,What is the main gas we breathe?,Oxygen,Nitrogen,Carbon dioxide,Argon,B,Nitrogen makes up about 78% of the air we breathe,Easy
+1238,Science,What do we call a scientist who studies weather?,Geologist,Biologist,Meteorologist,Astronomer,C,A meteorologist studies weather and atmospheric conditions,Easy
+1239,Science,What is the smallest planet in our solar system?,Mars,Mercury,Venus,Pluto,B,Mercury is the smallest planet in our solar system,Easy
+1240,Science,How many senses do humans have?,3,4,5,6,C,Humans traditionally have 5 senses: sight hearing smell taste and touch,Easy
+1241,Science,What is the chemical formula for salt?,H2O,NaCl,CO2,O2,B,Table salt has the chemical formula NaCl (sodium chloride),Easy
+1242,Science,What type of blood cells fight infection?,Red blood cells,White blood cells,Platelets,Plasma cells,B,White blood cells fight infections in the body,Easy
+1243,Science,What is the study of space called?,Geology,Biology,Astronomy,Meteorology,C,Astronomy is the study of celestial objects and space,Easy
+1244,Science,How many wings does a bee have?,2,4,6,8,B,Bees have 4 wings (2 pairs),Easy
+1245,Science,What is the largest internal organ in the human body?,Heart,Brain,Liver,Stomach,C,The liver is the largest internal organ,Easy
+1246,Science,What do we call the path of Earth around the sun?,Rotation,Revolution,Orbit,Cycle,C,Earth's path around the sun is called its orbit,Easy
+1247,Science,What is the basic unit of matter?,Cell,Atom,Molecule,Electron,B,The atom is the basic unit of matter,Easy
+1248,Science,Which gas is most abundant in Earth's atmosphere?,Oxygen,Carbon dioxide,Nitrogen,Hydrogen,C,Nitrogen makes up about 78% of Earth's atmosphere,Easy
+1249,Science,What is the process by which caterpillars become butterflies?,Evolution,Metamorphosis,Mutation,Adaptation,B,Metamorphosis is the transformation from caterpillar to butterfly,Easy
+1250,Science,How many hours are in a day?,12,24,36,48,B,There are 24 hours in one day,Easy
+1251,Science,What organ produces bile?,Stomach,Pancreas,Liver,Kidney,C,The liver produces bile for digestion,Easy
+1252,Science,What is the study of animals called?,Botany,Zoology,Geology,Ecology,B,Zoology is the study of animals,Easy
+1253,Science,What force pulls objects toward Earth?,Magnetism,Gravity,Friction,Pressure,B,Gravity pulls objects toward Earth's center,Easy
+1254,Science,How many continents are there?,5,6,7,8,C,There are 7 continents on Earth,Easy
+1255,Science,What is the chemical symbol for water?,H2O,O2,CO2,NaCl,A,H2O is the chemical formula for water,Easy
+1256,Science,What type of rock forms from volcanic lava?,Sedimentary,Metamorphic,Igneous,Granite,C,Igneous rocks form from cooled lava or magma,Easy
+1257,Science,What is the smallest bone in the human body?,Stapes,Femur,Patella,Radius,A,The stapes in the ear is the smallest human bone,Easy
+1258,Science,How many days does Earth take to orbit the sun?,30,100,365,500,C,Earth takes approximately 365 days to orbit the sun,Easy
+1259,Science,What do we call a doctor who treats animals?,Pediatrician,Veterinarian,Physician,Surgeon,B,A veterinarian is a doctor who treats animals,Easy
+1260,Science,What is the main function of roots?,Photosynthesis,Water absorption,Reproduction,Respiration,B,Roots mainly absorb water and nutrients from soil,Easy
+1261,Science,Which organ controls thinking?,Heart,Liver,Brain,Stomach,C,The brain controls thinking and other mental processes,Easy
+1262,Science,What is the process of liquid becoming solid called?,Melting,Freezing,Boiling,Evaporation,B,Freezing is when a liquid becomes a solid,Easy
+1263,Science,How many chromosomes do humans have?,23,46,69,92,B,Humans have 46 chromosomes (23 pairs),Easy
+1264,Science,What type of scientist studies dinosaurs?,Archaeologist,Paleontologist,Geologist,Biologist,B,Paleontologists study dinosaurs and fossils,Easy
+1265,Science,What is the hottest planet in our solar system?,Mercury,Venus,Mars,Jupiter,B,Venus is the hottest planet due to its thick atmosphere,Easy
+1266,Science,What part of the plant absorbs sunlight?,Roots,Stem,Leaves,Flowers,C,Leaves absorb sunlight for photosynthesis,Easy
+1267,Science,How many kidneys does a human have?,1,2,3,4,B,Humans typically have 2 kidneys,Easy
+1268,Science,What is the study of plants called?,Zoology,Botany,Geology,Ecology,B,Botany is the study of plants,Easy
+1269,Science,What metal is liquid at room temperature?,Gold,Silver,Mercury,Lead,C,Mercury is the only metal liquid at room temperature,Easy
+1270,Science,What do we call baby cats?,Puppies,Kittens,Cubs,Chicks,B,Baby cats are called kittens,Easy
+1271,Science,How many chambers does a bird's heart have?,2,3,4,5,C,Birds have 4-chambered hearts like mammals,Easy
+1272,Science,What is the main gas in the sun?,Oxygen,Helium,Hydrogen,Nitrogen,C,The sun is mainly composed of hydrogen gas,Easy
+1273,Science,What type of tree produces acorns?,Maple,Oak,Pine,Birch,B,Oak trees produce acorns,Easy
+1274,Science,What is the longest bone in the human body?,Spine,Femur,Tibia,Humerus,B,The femur (thighbone) is the longest bone,Easy
+1275,Science,How many stomachs does a human have?,1,2,3,4,A,Humans have one stomach,Easy
+1276,Science,What causes tides?,Wind,Moon,Temperature,Pressure,B,The moon's gravity causes ocean tides,Easy
+1277,Science,What is the outer layer of skin called?,Dermis,Epidermis,Hypodermis,Subdermis,B,The epidermis is the outer layer of skin,Easy
+1278,Science,How many lungs does a human have?,1,2,3,4,B,Humans have 2 lungs,Easy
+1279,Science,What type of animal is a snake?,Mammal,Bird,Reptile,Amphibian,C,Snakes are reptiles,Easy
+1280,Science,What is the study of earthquakes called?,Volcanology,Seismology,Meteorology,Geology,B,Seismology is the study of earthquakes,Easy
+1281,Science,What part of the eye controls how much light enters?,Pupil,Iris,Retina,Cornea,A,The pupil controls the amount of light entering the eye,Easy
+1282,Science,How many ventricles are in a human heart?,1,2,3,4,B,The human heart has 2 ventricles,Easy
+1283,Science,What type of energy is stored in food?,Kinetic,Potential,Chemical,Nuclear,C,Food contains chemical energy,Easy
+1284,Science,What is the term for animals that are active during the day?,Nocturnal,Diurnal,Crepuscular,Hibernating,B,Diurnal animals are active during the day,Easy
+1285,Science,What organ stores bile?,Stomach,Gallbladder,Pancreas,Liver,B,The gallbladder stores bile produced by the liver,Easy
+1286,Science,How many moons does Earth have?,0,1,2,3,B,Earth has 1 moon,Easy
+1287,Science,What is the chemical symbol for oxygen?,O,O2,Ox,Og,A,O is the chemical symbol for oxygen,Easy
+1288,Science,What type of animal is a whale?,Fish,Mammal,Amphibian,Reptile,B,Whales are marine mammals,Easy
+1289,Science,What is the process of a solid becoming a gas called?,Evaporation,Condensation,Sublimation,Deposition,C,Sublimation is when a solid turns directly into a gas,Easy
+1290,Science,How many ribs do humans typically have?,20,22,24,26,C,Humans typically have 24 ribs (12 pairs),Easy
+1291,Science,What produces honey?,Wasps,Bees,Ants,Butterflies,B,Bees produce honey from flower nectar,Easy
+1292,Science,What is the largest muscle in the human body?,Biceps,Quadriceps,Gluteus maximus,Hamstring,C,The gluteus maximus (buttock muscle) is the largest,Easy
+1293,Science,What planet is closest to the sun?,Venus,Mercury,Earth,Mars,B,Mercury is the closest planet to the sun,Easy
+1294,Science,What do we call the colored part of the eye?,Pupil,Iris,Retina,Cornea,B,The iris is the colored part of the eye,Easy
+1295,Science,How many bones are in the human hand?,14,19,22,27,D,The human hand has 27 bones,Easy
+1296,Science,What type of blood vessel carries blood away from the heart?,Vein,Artery,Capillary,Valve,B,Arteries carry blood away from the heart,Easy
+1297,Science,What is the chemical symbol for iron?,I,Ir,Fe,F,C,Fe (from Latin ferrum) is the symbol for iron,Easy
+1298,Science,How many vertebrae does a human typically have?,24,26,33,40,C,Humans typically have 33 vertebrae,Easy
+1299,Science,What organ helps digest food?,Heart,Brain,Stomach,Lungs,C,The stomach helps digest food,Easy
+1300,Science,What is the study of the human body called?,Biology,Anatomy,Psychology,Chemistry,B,Anatomy is the study of the structure of the human body,Easy
+1301,Math,What is 12 × 12?,120,132,144,156,C,12 × 12 = 144,Easy
+1302,Geography,What is the capital of Canada?,Toronto,Vancouver,Ottawa,Montreal,C,Ottawa is the capital city of Canada,Easy
+1303,Science,What type of animal is a penguin?,Mammal,Bird,Fish,Reptile,B,Penguins are flightless birds,Easy
+1304,History,Who was the first person to walk on the moon?,Buzz Aldrin,Neil Armstrong,John Glenn,Alan Shepard,B,Neil Armstrong was first to walk on the moon in 1969,Easy
+1305,Science,What gas makes up most of the air we breathe?,Oxygen,Nitrogen,Carbon dioxide,Hydrogen,B,Nitrogen makes up about 78% of air,Easy
+1306,Science,How many legs does a butterfly have?,4,6,8,10,B,Butterflies have 6 legs like all insects,Easy
+1307,Science,What is the powerhouse of the cell?,Nucleus,Mitochondria,Ribosome,Chloroplast,B,Mitochondria are called the powerhouse of the cell,Easy
+1308,Science,What organ helps you see?,Brain,Eye,Nose,Ear,B,Eyes are the organs of sight,Easy
+1309,Science,How many seasons are there in a year?,2,3,4,5,C,There are 4 seasons in a year,Easy
+1310,Science,What do we call frozen rain?,Snow,Sleet,Hail,Frost,C,Hail is frozen rain that falls as ice pellets,Easy
+1311,Science,What type of animal is a frog?,Mammal,Reptile,Amphibian,Fish,C,Frogs are amphibians,Easy
+1312,Science,What is the chemical symbol for gold?,Go,Au,Gd,G,B,Au (from Latin aurum) is the symbol for gold,Easy
+1313,Science,How many planets are between Earth and the sun?,0,1,2,3,C,Mercury and Venus are between Earth and the sun,Easy
+1314,Science,What organ helps you hear?,Eye,Ear,Nose,Tongue,B,Ears are the organs of hearing,Easy
+1315,Science,What is the study of fossils called?,Archaeology,Paleontology,Geology,Biology,B,Paleontology is the study of fossils,Easy
+1316,Science,How many legs does a crab have?,6,8,10,12,C,Crabs have 10 legs including their claws,Easy
+1317,Science,What type of energy does a battery store?,Heat,Light,Chemical,Sound,C,Batteries store chemical energy,Easy
+1318,Science,What is the smallest particle of an element?,Molecule,Atom,Electron,Proton,B,An atom is the smallest particle of an element,Easy
+1319,Science,How many sides does a honeycomb cell have?,4,5,6,8,C,Honeycomb cells are hexagonal with 6 sides,Easy
+1320,Science,What organ helps you taste?,Nose,Tongue,Throat,Lips,B,The tongue contains taste buds for tasting,Easy
+1321,Science,What is the study of stars called?,Geology,Meteorology,Astronomy,Biology,C,Astronomy includes the study of stars,Easy
+1322,Science,How many legs does an octopus have?,6,8,10,12,B,An octopus has 8 tentacles (arms),Easy
+1323,Science,What type of rock is formed from layers?,Igneous,Metamorphic,Sedimentary,Volcanic,C,Sedimentary rocks form in layers,Easy
+1324,Science,What is the chemical symbol for carbon?,C,Ca,Co,Cr,A,C is the chemical symbol for carbon,Easy
+1325,Science,How many bones are in the human spine?,24,26,33,40,C,The human spine has 33 vertebrae,Easy
+1326,Science,What produces vitamin D in skin?,Water,Sunlight,Air,Food,B,Sunlight triggers vitamin D production in skin,Easy
+1327,Science,What type of animal is a bat?,Bird,Mammal,Reptile,Amphibian,B,Bats are the only flying mammals,Easy
+1328,Science,How many times does the heart beat per minute at rest?,40-60,60-100,100-120,120-140,B,Normal resting heart rate is 60-100 beats per minute,Easy
+1329,Science,What is the study of insects called?,Ornithology,Entomology,Herpetology,Ichthyology,B,Entomology is the study of insects,Easy
+1330,Science,What gas do we need to breathe?,Nitrogen,Carbon dioxide,Oxygen,Hydrogen,C,We need oxygen to breathe and survive,Easy
+1331,Science,How many electrons does hydrogen have?,0,1,2,3,B,Hydrogen has 1 electron,Easy
+1332,Science,What type of lens makes objects appear larger?,Concave,Convex,Flat,Mirror,B,Convex lenses magnify objects,Easy
+1333,Science,What is the study of heredity called?,Geology,Genetics,Geography,Geometry,B,Genetics is the study of heredity and genes,Easy
+1334,Science,How many phases does the moon have?,4,6,8,10,C,The moon has 8 phases,Easy
+1335,Science,What organ removes waste from blood?,Heart,Liver,Kidney,Stomach,C,Kidneys filter waste from blood,Easy
+1336,Science,What type of animal lays eggs?,Viviparous,Oviparous,Herbivorous,Carnivorous,B,Oviparous animals lay eggs,Easy
+1337,Science,How many atoms are in a water molecule?,1,2,3,4,C,Water (H2O) has 3 atoms: 2 hydrogen and 1 oxygen,Easy
+1338,Science,What causes a rainbow?,Wind,Rain,Sunlight through water droplets,Temperature,C,Rainbows form when sunlight passes through water droplets,Easy
+1339,Science,What is the study of cells called?,Cytology,Psychology,Sociology,Theology,A,Cytology is the study of cells,Easy
+1340,Science,How many types of teeth do humans have?,2,3,4,5,C,Humans have 4 types: incisors canines premolars and molars,Easy
+1341,Science,What is the process of water vapor becoming liquid?,Evaporation,Condensation,Precipitation,Sublimation,B,Condensation is when water vapor becomes liquid,Easy
+1342,Science,What type of joint is the knee?,Ball and socket,Hinge,Pivot,Fixed,B,The knee is a hinge joint,Easy
+1343,Science,How many elements are on the periodic table?,100,108,118,128,C,There are currently 118 known elements,Easy
+1344,Science,What organ produces insulin?,Liver,Pancreas,Kidney,Stomach,B,The pancreas produces insulin to regulate blood sugar,Easy
+1345,Science,What is the study of fungi called?,Mycology,Biology,Botany,Zoology,A,Mycology is the study of fungi,Easy
+1346,Science,How many calories are in one gram of fat?,4,6,9,12,C,One gram of fat contains 9 calories,Easy
+1347,Science,What type of wave is sound?,Electromagnetic,Mechanical,Light,Radio,B,Sound is a mechanical wave that needs a medium,Easy
+1348,Science,What is the pH of pure water?,5,6,7,8,C,Pure water has a neutral pH of 7,Easy
+1349,Science,How many valves does the human heart have?,2,3,4,5,C,The human heart has 4 valves,Easy
+1350,Science,What element is essential for making hemoglobin?,Calcium,Iron,Zinc,Magnesium,B,Iron is essential for making hemoglobin in red blood cells,Easy
+1351,Science,What is the process of turning a liquid into a solid?,Melting,Freezing,Condensation,Evaporation,B,Freezing is the process of liquid becoming solid,Easy
+1352,History,Which explorer led the first expedition to circumnavigate the globe?,Christopher Columbus,Ferdinand Magellan,Francis Drake,James Cook,B,Ferdinand Magellan's expedition first circumnavigated Earth (1519-1522),Medium
+1353,Math,What is 18 × 17?,296,306,316,326,B,18 × 17 = 306,Medium
+1354,Geography,What is the capital of Argentina?,Santiago,Buenos Aires,Montevideo,Lima,B,Buenos Aires is the capital of Argentina,Easy
+1355,Science,Which metal is liquid at room temperature?,Gold,Silver,Mercury,Gallium,C,Mercury is the only metal liquid at room temperature,Easy
+1356,Food,What is the main ingredient in falafel?,Lentils,Chickpeas,Black beans,Kidney beans,B,Falafel is made primarily from ground chickpeas,Easy
+1357,Sports,How many players are on a polo team?,3,4,5,6,B,A polo team has 4 players on the field,Medium
+1358,Literature,Who wrote "The Adventures of Tom Sawyer"?,Mark Twain,Charles Dickens,Herman Melville,Nathaniel Hawthorne,A,Mark Twain wrote The Adventures of Tom Sawyer in 1876,Easy
+1359,Science,What is the study of heredity called?,Genetics,Biology,Chemistry,Physics,A,Genetics is the study of heredity and variation,Easy
+1360,History,In which year did the French Revolution begin?,1779,1789,1799,1809,B,The French Revolution began in 1789,Easy
+1361,Math,What is the value of 9³?,729,819,909,999,A,9³ = 9 × 9 × 9 = 729,Easy
+1362,Geography,Which country has the most neighbors?,China,Russia,Brazil,Germany,B,Russia borders 14 countries making it the country with most neighbors,Medium
+1363,Science,What type of mirror curves inward?,Convex,Concave,Plane,Parabolic,B,A concave mirror curves inward,Easy
+1364,Food,What type of wheat is used to make pasta?,Soft wheat,Durum wheat,Red wheat,White wheat,B,Pasta is traditionally made from durum wheat,Medium
+1365,Technology,What does TCP stand for?,Transfer Control Protocol,Transmission Control Protocol,Technical Communication Protocol,Terminal Control Protocol,B,TCP stands for Transmission Control Protocol,Medium
+1366,Science,Which planet rotates on its side?,Venus,Uranus,Neptune,Saturn,B,Uranus rotates on its side at about 98 degrees,Medium
+1367,History,Who built the Taj Mahal?,Akbar,Shah Jahan,Aurangzeb,Babur,B,Shah Jahan built the Taj Mahal as a mausoleum for his wife,Easy
+1368,Math,What is the greatest common divisor of 24 and 36?,6,8,12,18,C,The GCD of 24 and 36 is 12,Medium
+1369,Geography,What is the smallest state in the USA?,Delaware,Connecticut,Rhode Island,Vermont,C,Rhode Island is the smallest U.S. state by area,Easy
+1370,Science,What gas makes up about 1% of Earth's atmosphere?,Oxygen,Carbon dioxide,Argon,Neon,C,Argon makes up about 0.93% of Earth's atmosphere,Medium
+1371,Animals,Which animal can sleep while flying?,Bat,Albatross,Eagle,Owl,B,Albatrosses can sleep while flying using half their brain,Hard
+1372,Sports,What is the length of a cricket pitch?,20 yards,22 yards,24 yards,26 yards,B,A cricket pitch is 22 yards (20.12 meters) long,Medium
+1373,Science,What is the SI unit of pressure?,Newton,Pascal,Bar,Torr,B,The pascal (Pa) is the SI unit of pressure,Easy
+1374,History,Which ancient wonder was in Babylon?,Pyramid,Lighthouse,Hanging Gardens,Colossus,C,The Hanging Gardens were in Babylon,Easy
+1375,Math,What is 45% of 200?,80,85,90,95,C,45% of 200 = 0.45 × 200 = 90,Easy
+1376,Geography,Which ocean is the Bermuda Triangle in?,Pacific,Atlantic,Indian,Arctic,B,The Bermuda Triangle is in the Atlantic Ocean,Easy
+1377,Science,What is the largest gland in the human body?,Thyroid,Liver,Pancreas,Pituitary,B,The liver is the largest gland in the human body,Easy
+1378,Food,What fruit is dried to make prunes?,Apricots,Plums,Grapes,Figs,B,Prunes are dried plums,Easy
+1379,Technology,What year was the World Wide Web invented?,1989,1991,1993,1995,A,Tim Berners-Lee invented the WWW in 1989,Medium
+1380,Science,How many moons does Mars have?,0,1,2,3,C,Mars has 2 moons: Phobos and Deimos,Easy
+1381,History,What year did the Black Death begin in Europe?,1327,1337,1347,1357,C,The Black Death reached Europe in 1347,Medium
+1382,Math,What is the 10th triangular number?,45,50,55,60,C,The 10th triangular number is 1+2+3+...+10 = 55,Medium
+1383,Geography,What is the highest mountain in North America?,Mount McKinley,Mount Logan,Mount Whitney,Pikes Peak,A,Mount McKinley (Denali) is North America's highest peak,Easy
+1384,Science,What vitamin prevents scurvy?,Vitamin A,Vitamin B,Vitamin C,Vitamin D,C,Vitamin C deficiency causes scurvy,Easy
+1385,Animals,How many stomachs does a llama have?,1,2,3,4,C,Llamas have 3 stomach compartments,Medium
+1386,Sports,What is the width of a soccer goal?,6 yards,7 yards,8 yards,9 yards,C,A soccer goal is 8 yards (24 feet) wide,Medium
+1387,Science,What element has the symbol Au?,Silver,Gold,Aluminum,Argon,B,Au (from Latin aurum) is the symbol for gold,Easy
+1388,History,Who invented dynamite?,Thomas Edison,Alfred Nobel,Nikola Tesla,Marie Curie,B,Alfred Nobel invented dynamite in 1867,Easy
+1389,Math,What is i⁴ in complex numbers?,1,-1,i,-i,A,i⁴ = (i²)² = (-1)² = 1,Medium
+1390,Geography,Which African country is completely surrounded by South Africa?,Botswana,Swaziland,Lesotho,Zimbabwe,C,Lesotho is completely surrounded by South Africa,Medium
+1391,Science,What is the study of blood called?,Hematology,Cardiology,Neurology,Dermatology,A,Hematology is the study of blood and blood disorders,Medium
+1392,Food,What spice comes from dried stigmas?,Vanilla,Saffron,Paprika,Turmeric,B,Saffron comes from the dried stigmas of crocus flowers,Medium
+1393,Technology,What does BIOS stand for?,Basic Input Output System,Binary Input Output System,Basic Integrated Operating System,Binary Integrated Operating System,A,BIOS stands for Basic Input Output System,Easy
+1394,Science,Which layer of Earth is the thickest?,Crust,Mantle,Outer core,Inner core,B,The mantle is Earth's thickest layer,Easy
+1395,History,In which year did India gain independence?,1945,1946,1947,1948,C,India gained independence on August 15 1947,Easy
+1396,Math,What is the sum of interior angles in a hexagon?,540°,600°,720°,900°,C,Sum = (n-2) × 180° = (6-2) × 180° = 720°,Medium
+1397,Geography,What is the deepest lake in the world?,Lake Superior,Lake Baikal,Lake Tanganyika,Lake Victoria,B,Lake Baikal in Russia is the world's deepest lake,Medium
+1398,Science,What type of sugar is in DNA?,Glucose,Fructose,Ribose,Deoxyribose,D,DNA contains deoxyribose sugar,Medium
+1399,Animals,Which mammal has no vocal cords?,Elephant,Giraffe,Hippo,Rhino,B,Giraffes have no vocal cords,Medium
+1400,Sports,How many minutes is a rugby union half?,35,40,45,50,B,Rugby union halves are 40 minutes each,Easy
+1401,Science,What is the atomic number of hydrogen?,0,1,2,3,B,Hydrogen has atomic number 1,Easy
+1402,History,Which empire built Petra?,Greek,Roman,Nabataean,Byzantine,C,The Nabataean Kingdom built Petra,Medium
+1403,Math,What is ln(e)?,0,1,e,undefined,B,The natural logarithm of e equals 1,Medium
+1404,Geography,Which U.S. state has the most volcanoes?,Hawaii,Alaska,California,Washington,B,Alaska has over 130 volcanoes,Medium
+1405,Science,What type of radiation has the shortest wavelength?,Radio waves,Microwaves,X-rays,Gamma rays,D,Gamma rays have the shortest wavelength,Medium
+1406,Food,What grain is polenta made from?,Wheat,Rice,Corn,Barley,C,Polenta is made from ground corn (maize),Easy
+1407,Technology,What does SIM stand for in SIM card?,Subscriber Identity Module,System Identity Module,Subscriber Information Module,System Information Module,A,SIM stands for Subscriber Identity Module,Medium
+1408,Science,How many taste buds does an average adult have?,5000,10000,15000,20000,B,Adults have approximately 10000 taste buds,Medium
+1409,History,What year did the American Revolution begin?,1773,1774,1775,1776,C,The American Revolution began in 1775,Easy
+1410,Math,What is the 7th Fibonacci number?,8,13,21,34,B,The 7th Fibonacci number is 13 (1 1 2 3 5 8 13),Easy
+1411,Geography,What is the largest desert in the world?,Sahara,Antarctic,Arctic,Gobi,B,Antarctica is technically the largest desert,Medium
+1412,Science,What organ produces glucagon?,Liver,Pancreas,Kidney,Thyroid,B,The pancreas produces glucagon to raise blood sugar,Medium
+1413,Animals,Which whale dives the deepest?,Blue whale,Sperm whale,Humpback whale,Gray whale,B,Sperm whales can dive over 2000 meters deep,Medium
+1414,Sports,How many points is a safety worth in American football?,1,2,3,6,B,A safety is worth 2 points in American football,Easy
+1415,Science,What is the most reactive metal?,Sodium,Potassium,Francium,Cesium,C,Francium is the most reactive metal,Hard
+1416,History,Who was the first Roman Emperor?,Julius Caesar,Augustus,Nero,Tiberius,B,Augustus was the first Roman Emperor,Easy
+1417,Math,What is 16²?,196,226,256,286,C,16² = 16 × 16 = 256,Easy
+1418,Geography,Which country owns Easter Island?,Peru,Chile,Argentina,Ecuador,B,Easter Island belongs to Chile,Medium
+1419,Science,What type of joint is the shoulder?,Hinge,Ball and socket,Pivot,Gliding,B,The shoulder is a ball and socket joint,Easy
+1420,Food,What is pancetta?,Ham,Bacon,Sausage,Salami,B,Pancetta is Italian cured pork belly (similar to bacon),Medium
+1421,Technology,What does URL stand for?,Universal Resource Locator,Uniform Resource Locator,Universal Reference Link,Uniform Reference Link,B,URL stands for Uniform Resource Locator,Easy
+1422,Science,How many cervical vertebrae do humans have?,5,6,7,8,C,Humans have 7 cervical (neck) vertebrae,Medium
+1423,History,What year did Constantinople fall?,1353,1453,1553,1653,B,Constantinople fell to the Ottomans in 1453,Medium
+1424,Math,What is the derivative of x³?,x²,2x²,3x²,3x,C,The derivative of x³ is 3x²,Medium
+1425,Geography,What is the largest island in the Caribbean?,Cuba,Hispaniola,Jamaica,Puerto Rico,A,Cuba is the largest Caribbean island,Easy
+1426,Science,What element has the highest boiling point?,Carbon,Tungsten,Rhenium,Tantalum,C,Rhenium has the highest boiling point of all elements,Hard
+1427,Animals,Which animal has the most legs?,Spider,Centipede,Millipede,Scorpion,C,Millipedes can have up to 750 legs,Medium
+1428,Sports,What is the height of a tennis net at the center?,2 feet,3 feet,3.5 feet,4 feet,B,A tennis net is 3 feet high at the center,Medium
+1429,Science,What is the pH of lemon juice?,2,4,6,8,A,Lemon juice has a pH of about 2,Medium
+1430,History,Who discovered penicillin?,Louis Pasteur,Alexander Fleming,Jonas Salk,Marie Curie,B,Alexander Fleming discovered penicillin in 1928,Easy
+1431,Math,What is the area of a circle with diameter 10?,25π,50π,75π,100π,A,Area = πr² = π(5)² = 25π,Easy
+1432,Geography,Which European country has the most lakes?,Sweden,Finland,Norway,Russia,B,Finland has approximately 188000 lakes,Medium
+1433,Science,What type of cloud produces thunderstorms?,Cirrus,Stratus,Cumulus,Cumulonimbus,D,Cumulonimbus clouds produce thunderstorms,Easy
+1434,Food,What cheese is traditionally used in fondue?,Cheddar,Gruyère,Mozzarella,Parmesan,B,Gruyère is a traditional cheese for Swiss fondue,Medium
+1435,Technology,What was the first computer mouse made of?,Plastic,Metal,Wood,Glass,C,The first computer mouse was made of wood,Medium
+1436,Science,Which organ has the islets of Langerhans?,Liver,Pancreas,Kidney,Spleen,B,The pancreas contains the islets of Langerhans,Medium
+1437,History,What year did the USSR dissolve?,1989,1990,1991,1992,C,The Soviet Union dissolved in 1991,Easy
+1438,Math,What is log₂(32)?,4,5,6,7,B,log₂(32) = 5 because 2⁵ = 32,Medium
+1439,Geography,What is the westernmost point of Europe?,Ireland,Portugal,Iceland,Spain,C,Iceland contains Europe's westernmost point,Hard
+1440,Science,How many pairs of chromosomes do humans have?,20,21,22,23,D,Humans have 23 pairs of chromosomes,Easy
+1441,Animals,Which fish can swim backwards?,Salmon,Tuna,Eel,Triggerfish,D,Triggerfish can swim backwards,Hard
+1442,Sports,How many players are in a lacrosse team?,8,9,10,11,C,A lacrosse team has 10 players on the field,Medium
+1443,Science,What gas is used in neon signs?,Helium,Neon,Argon,Xenon,B,Neon gas produces the orange-red glow in neon signs,Easy
+1444,History,Who wrote the Magna Carta?,King John,Barons of England,Pope Innocent III,Archbishop Langton,B,The Barons of England wrote the Magna Carta in 1215,Medium
+1445,Math,What is the cotangent of 45°?,0,1,√2,undefined,B,cot(45°) = 1,Medium
+1446,Geography,Which sea has no coastline?,Caspian Sea,Dead Sea,Sargasso Sea,Aral Sea,C,The Sargasso Sea has no land boundaries,Hard
+1447,Science,What is the smallest blood vessel?,Artery,Vein,Capillary,Arteriole,C,Capillaries are the smallest blood vessels,Easy
+1448,Food,What is the main ingredient in aioli?,Mayonnaise,Garlic,Olive oil,Egg yolk,B,Aioli is primarily garlic and olive oil sauce,Medium
+1449,Technology,What does RAID stand for in computing?,Random Access Independent Disks,Redundant Array of Independent Disks,Rapid Access Internal Drive,Remote Array of Internal Disks,B,RAID stands for Redundant Array of Independent Disks,Medium
+1450,Science,How many thoracic vertebrae do humans have?,10,11,12,13,C,Humans have 12 thoracic (chest) vertebrae,Medium
+1451,History,What year was the Rosetta Stone discovered?,1779,1789,1799,1809,C,The Rosetta Stone was discovered in 1799,Medium
+1452,Math,What is 13 × 13?,159,169,179,189,B,13 × 13 = 169,Easy
+1453,Geography,What is the longest mountain range on Earth?,Andes,Rockies,Himalayas,Mid-Ocean Ridge,D,The Mid-Ocean Ridge is Earth's longest mountain range,Hard
+1454,Science,What type of muscle is the heart?,Smooth,Skeletal,Cardiac,Voluntary,C,The heart is made of cardiac muscle,Easy
+1455,Animals,How many toes does a cat have?,16,18,20,22,B,Cats typically have 18 toes (5 front 4 back per paw),Medium
+1456,Sports,What is the maximum score in 10-pin bowling?,200,250,300,350,C,A perfect game in bowling scores 300,Easy
+1457,Science,What element makes steel stainless?,Chrome,Nickel,Manganese,Carbon,A,Chromium makes steel stainless,Medium
+1458,History,Which pharaoh built the Great Pyramid?,Khufu,Khafre,Menkaure,Djoser,A,Pharaoh Khufu built the Great Pyramid of Giza,Medium
+1459,Math,What is the integral of 2x?,x,x²,2x²,x² + C,D,The integral of 2x is x² + C,Medium
+1460,Geography,What is the smallest ocean by area?,Arctic,Indian,Southern,Atlantic,A,The Arctic Ocean is the smallest by area,Easy
+1461,Science,What hormone regulates sleep?,Melatonin,Serotonin,Dopamine,Cortisol,A,Melatonin regulates sleep-wake cycles,Easy
+1462,Food,What nut is marzipan made from?,Walnut,Almond,Cashew,Hazelnut,B,Marzipan is made from ground almonds,Easy
+1463,Technology,What does CSS stand for?,Computer Style Sheets,Cascading Style Sheets,Creative Style Sheets,Coded Style Sheets,B,CSS stands for Cascading Style Sheets,Easy
+1464,Science,How many lumbar vertebrae do humans have?,3,4,5,6,C,Humans have 5 lumbar (lower back) vertebrae,Medium
+1465,History,What year did Mount Vesuvius erupt and bury Pompeii?,59 AD,69 AD,79 AD,89 AD,C,Mount Vesuvius erupted in 79 AD,Easy
+1466,Math,What is the cosine of 0°?,0,1,-1,undefined,B,cos(0°) = 1,Easy
+1467,Geography,Which country is known as the Land of Fire and Ice?,Norway,Iceland,Greenland,Finland,B,Iceland is called the Land of Fire and Ice,Easy
+1468,Science,What is the hardest mineral?,Quartz,Corundum,Diamond,Topaz,C,Diamond is the hardest natural mineral,Easy
+1469,Animals,Which bird has the largest wingspan?,Albatross,Condor,Eagle,Pelican,A,The wandering albatross has the largest wingspan,Easy
+1470,Sports,How many strings does a tennis racket typically have?,12,14,16,18,C,Tennis rackets typically have 16 main strings,Hard
+1471,Science,What organ stores glycogen?,Heart,Liver,Kidney,Pancreas,B,The liver stores glycogen for energy,Easy
+1472,History,Who was the first person to reach the South Pole?,Robert Scott,Ernest Shackleton,Roald Amundsen,Richard Byrd,C,Roald Amundsen reached the South Pole first in 1911,Medium
+1473,Math,What is 30% of 250?,65,70,75,80,C,30% of 250 = 0.30 × 250 = 75,Easy
+1474,Geography,What is the highest capital city in the world?,Quito,La Paz,Bogotá,Kathmandu,B,La Paz Bolivia is the highest capital city,Medium
+1475,Science,What type of radiation is used in microwave ovens?,Radio waves,Microwaves,Infrared,Ultraviolet,B,Microwave ovens use microwave radiation,Easy
+1476,Food,What is traditionally the main ingredient in hollandaise sauce?,Cream,Butter,Milk,Cheese,B,Hollandaise sauce is primarily butter and egg yolks,Medium
+1477,Technology,What does PNG stand for?,Portable Network Graphics,Picture Network Graphics,Portable New Graphics,Picture New Graphics,A,PNG stands for Portable Network Graphics,Medium
+1478,Science,How many true ribs do humans have?,6,7,8,9,B,Humans have 7 pairs of true ribs,Medium
+1479,History,What year did the Hindenburg disaster occur?,1935,1936,1937,1938,C,The Hindenburg disaster occurred in 1937,Medium
+1480,Math,What is the standard deviation of: 2 2 2 2?,0,1,2,4,A,When all values are the same standard deviation is 0,Medium
+1481,Geography,Which Asian country was formerly called Ceylon?,Myanmar,Sri Lanka,Thailand,Malaysia,B,Sri Lanka was formerly known as Ceylon,Easy
+1482,Science,What is the longest muscle in the human body?,Gluteus maximus,Sartorius,Quadriceps,Latissimus dorsi,B,The sartorius is the longest muscle in the human body,Hard
+1483,Animals,How many neck vertebrae does a giraffe have?,7,14,21,28,A,Giraffes have 7 neck vertebrae like most mammals,Medium
+1484,Sports,What is the diameter of a golf ball?,1.58 inches,1.68 inches,1.78 inches,1.88 inches,B,A golf ball must be at least 1.68 inches in diameter,Medium
+1485,Science,What element is the primary component of natural gas?,Hydrogen,Methane,Propane,Butane,B,Natural gas is primarily methane (CH4),Easy
+1486,History,Who invented the cotton gin?,Eli Whitney,James Watt,Robert Fulton,Samuel Morse,A,Eli Whitney invented the cotton gin in 1793,Easy
+1487,Math,What is the sine of 30°?,0.25,0.5,0.75,1,B,sin(30°) = 0.5,Easy
+1488,Geography,What is the driest place on Earth?,Sahara Desert,Atacama Desert,Death Valley,Antarctica,B,The Atacama Desert is the driest place on Earth,Medium
+1489,Science,How many cranial nerves do humans have?,10,12,14,16,B,Humans have 12 pairs of cranial nerves,Medium
+1490,Food,What type of flour is used to make traditional rye bread?,Wheat flour,Rye flour,Corn flour,Rice flour,B,Rye bread is made primarily with rye flour,Easy
+1491,Technology,What was the first commercially successful video game?,Pong,Space Invaders,Pac-Man,Tetris,A,Pong was the first commercially successful video game,Medium
+1492,Science,What vitamin is produced by gut bacteria?,Vitamin A,Vitamin C,Vitamin K,Vitamin D,C,Gut bacteria produce vitamin K,Medium
+1493,History,What year did Alexander the Great die?,333 BC,328 BC,323 BC,318 BC,C,Alexander the Great died in 323 BC,Medium
+1494,Math,What is 7! (7 factorial)?,720,2520,5040,10080,C,7! = 7×6×5×4×3×2×1 = 5040,Medium
+1495,Geography,Which African country has pyramids older than Egypt's?,Sudan,Ethiopia,Libya,Chad,A,Sudan has more pyramids than Egypt and some are older,Hard
+1496,Science,What is the rarest naturally occurring element on Earth?,Francium,Astatine,Technetium,Promethium,B,Astatine is the rarest naturally occurring element,Hard
+1497,Animals,Which mammal has the most teeth?,Dolphin,Opossum,Giant armadillo,Sperm whale,C,The giant armadillo can have up to 100 teeth,Hard
+1498,Sports,How long is an Olympic marathon?,40.2 km,41.2 km,42.195 km,43.2 km,C,An Olympic marathon is exactly 42.195 kilometers,Easy
+1499,Science,What type of lens corrects farsightedness?,Convex,Concave,Cylindrical,Bifocal,A,Convex lenses correct farsightedness (hyperopia),Medium
+1500,History,In which year did the Hundred Years' War end?,1433,1443,1453,1463,C,The Hundred Years' War ended in 1453,Medium
+1501,Science,What is the study of sound called?,Audiology,Acoustics,Phonetics,Harmonics,B,Acoustics is the study of sound and its properties,Easy
+1502,History,Who founded the Mongol Empire?,Kublai Khan,Genghis Khan,Tamerlane,Attila,B,Genghis Khan founded the Mongol Empire in 1206,Easy
+1503,Math,What is 19 squared?,341,351,361,371,C,19² = 19 × 19 = 361,Easy
+1504,Geography,What is the capital of Thailand?,Hanoi,Bangkok,Phnom Penh,Vientiane,B,Bangkok is the capital of Thailand,Easy
+1505,Science,Which gas is used to preserve potato chips?,Oxygen,Nitrogen,Carbon dioxide,Helium,B,Nitrogen is used to preserve chips and prevent oxidation,Medium
+1506,Food,What is the main ingredient in tabbouleh?,Rice,Couscous,Bulgur,Quinoa,C,Tabbouleh is made primarily with bulgur wheat,Medium
+1507,Sports,How many players are on a handball team?,5,6,7,8,C,A handball team has 7 players on the court,Medium
+1508,Literature,Who wrote "Gulliver's Travels"?,Daniel Defoe,Jonathan Swift,Samuel Johnson,Henry Fielding,B,Jonathan Swift wrote Gulliver's Travels in 1726,Medium
+1509,Science,What is the SI unit of electric charge?,Volt,Ampere,Coulomb,Ohm,C,The coulomb is the SI unit of electric charge,Medium
+1510,History,In which year did the Berlin Wall go up?,1959,1960,1961,1962,C,The Berlin Wall was built in 1961,Easy
+1511,Math,What is the value of e (Euler's number) to 2 decimal places?,2.17,2.52,2.72,3.14,C,e ≈ 2.72 (more precisely 2.71828...),Medium
+1512,Geography,Which country has the most UNESCO World Heritage sites?,China,Italy,Spain,France,B,Italy has the most UNESCO World Heritage sites,Medium
+1513,Science,What type of rock is obsidian?,Sedimentary,Metamorphic,Igneous,Mineral,C,Obsidian is volcanic glass (igneous rock),Easy
+1514,Food,What spice gives curry its yellow color?,Saffron,Turmeric,Paprika,Cumin,B,Turmeric gives curry its characteristic yellow color,Easy
+1515,Technology,What does SMTP stand for?,Simple Mail Transfer Protocol,Secure Mail Transfer Protocol,System Mail Transfer Protocol,Standard Mail Transfer Protocol,A,SMTP stands for Simple Mail Transfer Protocol,Medium
+1516,Science,Which planet has the shortest day?,Mercury,Venus,Jupiter,Saturn,C,Jupiter has the shortest day at about 10 hours,Medium
+1517,History,Who was the first Tudor monarch?,Henry VII,Henry VIII,Edward VI,Elizabeth I,A,Henry VII was the first Tudor monarch (1485-1509),Medium
+1518,Math,What is the sum of the first 10 positive integers?,45,50,55,60,C,1+2+3+...+10 = 55,Easy
+1519,Geography,What is the largest city in India?,New Delhi,Mumbai,Kolkata,Chennai,B,Mumbai is India's largest city by population,Easy
+1520,Science,What is the chemical formula for ammonia?,NH2,NH3,NH4,N2H4,B,Ammonia has the chemical formula NH3,Easy
+1521,Animals,Which insect has the shortest lifespan?,Mayfly,Fruit fly,Mosquito,Housefly,A,Mayflies can live for just a few hours,Medium
+1522,Sports,What is the height of a badminton net?,4 feet,5 feet,5.5 feet,6 feet,B,A badminton net is 5 feet high at the center,Medium
+1523,Science,What is the study of the ocean called?,Oceanography,Marine biology,Hydrology,Limnology,A,Oceanography is the study of the ocean,Easy
+1524,History,Which dynasty ruled China the longest?,Han,Tang,Ming,Zhou,D,The Zhou Dynasty ruled for about 800 years,Hard
+1525,Math,What is 35% of 140?,42,45,49,52,C,35% of 140 = 0.35 × 140 = 49,Easy
+1526,Geography,Which country is known as the Pearl of Africa?,Kenya,Uganda,Tanzania,Rwanda,B,Uganda is known as the Pearl of Africa,Medium
+1527,Science,What type of energy is stored in a battery?,Kinetic,Chemical,Nuclear,Thermal,B,Batteries store chemical energy,Easy
+1528,Food,What is traditionally served with fish and chips?,Ketchup,Mayonnaise,Tartar sauce,Mustard,C,Tartar sauce is traditionally served with fish and chips,Easy
+1529,Technology,What year was Google founded?,1996,1997,1998,1999,C,Google was founded in 1998,Easy
+1530,Science,How many valence electrons does carbon have?,2,4,6,8,B,Carbon has 4 valence electrons,Medium
+1531,History,What year did the Suez Canal open?,1859,1864,1869,1874,C,The Suez Canal opened in 1869,Medium
+1532,Math,What is the 20th term of 2 4 6 8...?,36,38,40,42,C,The 20th term = 2 × 20 = 40,Easy
+1533,Geography,What is the second largest continent?,Africa,North America,South America,Europe,A,Africa is the second largest continent after Asia,Easy
+1534,Science,What vitamin is also known as ascorbic acid?,Vitamin A,Vitamin B,Vitamin C,Vitamin D,C,Vitamin C is also called ascorbic acid,Easy
+1535,Animals,How many species of penguins exist?,12,15,17,20,C,There are 17 recognized species of penguins,Medium
+1536,Sports,What is the length of a table tennis table?,8 feet,9 feet,10 feet,11 feet,B,A table tennis table is 9 feet long,Medium
+1537,Science,What element has the symbol Pb?,Phosphorus,Lead,Platinum,Palladium,B,Pb (from Latin plumbum) is the symbol for lead,Easy
+1538,History,Who was the last pharaoh of Egypt?,Tutankhamun,Ramses III,Cleopatra VII,Ptolemy XV,C,Cleopatra VII was the last pharaoh of Egypt,Easy
+1539,Math,What is the tangent of 45°?,0,1,√2,undefined,B,tan(45°) = 1,Easy
+1540,Geography,Which river forms part of the border between Mexico and USA?,Colorado River,Rio Grande,Mississippi River,Snake River,B,The Rio Grande forms part of the Mexico-USA border,Easy
+1541,Science,What is the largest artery in the human body?,Carotid,Femoral,Aorta,Pulmonary,C,The aorta is the largest artery in the human body,Easy
+1542,Food,What meat is traditionally used in shepherd's pie?,Beef,Lamb,Pork,Chicken,B,Shepherd's pie traditionally uses lamb meat,Easy
+1543,Technology,What does RAM stand for?,Random Access Memory,Read Access Memory,Rapid Access Memory,Random Array Memory,A,RAM stands for Random Access Memory,Easy
+1544,Science,How many electrons can the first electron shell hold?,1,2,4,8,B,The first electron shell can hold a maximum of 2 electrons,Easy
+1545,History,In which year did Pakistan become independent?,1945,1946,1947,1948,C,Pakistan gained independence on August 14 1947,Easy
+1546,Math,What is 11 × 13?,133,143,153,163,B,11 × 13 = 143,Easy
+1547,Geography,What is the southernmost capital city?,Wellington,Canberra,Buenos Aires,Cape Town,A,Wellington New Zealand is the southernmost capital,Medium
+1548,Science,What is the process of cell division called?,Mitosis,Meiosis,Binary fission,All of the above,D,All are types of cell division,Easy
+1549,Animals,Which sea creature has three hearts?,Squid,Octopus,Jellyfish,Starfish,B,Octopuses have three hearts,Easy
+1550,Sports,How many innings are in a softball game?,5,6,7,9,C,A standard softball game has 7 innings,Medium
+1551,Science,What is the unit of electrical resistance?,Volt,Ampere,Ohm,Watt,C,The ohm is the unit of electrical resistance,Easy
+1552,History,Who discovered America before Columbus?,Erik the Red,Leif Erikson,Bjorn Ironside,Harald Hardrada,B,Leif Erikson reached North America around 1000 AD,Medium
+1553,Math,What is log₁₀(1)?,0,1,10,undefined,A,log₁₀(1) = 0 because 10⁰ = 1,Easy
+1554,Geography,Which country has the most time zones?,China,Russia,USA,Canada,B,Russia spans 11 time zones,Medium
+1555,Science,What type of bond shares electrons?,Ionic,Covalent,Metallic,Hydrogen,B,Covalent bonds involve sharing of electrons,Easy
+1556,Food,What is the main ingredient in gazpacho?,Cucumber,Tomato,Pepper,Onion,B,Gazpacho is a cold soup made primarily with tomatoes,Easy
+1557,Technology,What does PDF stand for?,Portable Document Format,Personal Document File,Print Document Format,Public Document File,A,PDF stands for Portable Document Format,Easy
+1558,Science,How many chromosomes does a banana have?,11,22,33,44,C,Bananas have 33 chromosomes,Hard
+1559,History,What year did the Hundred Years War begin?,1327,1337,1347,1357,B,The Hundred Years War began in 1337,Medium
+1560,Math,What is the reciprocal of 5?,0.1,0.2,0.25,0.5,B,The reciprocal of 5 is 1/5 = 0.2,Easy
+1561,Geography,What is the driest desert in North America?,Mojave,Sonoran,Chihuahuan,Great Basin,A,The Mojave Desert is North America's driest desert,Medium
+1562,Science,What gas do plants release at night?,Oxygen,Carbon dioxide,Nitrogen,Methane,B,Plants release carbon dioxide at night during respiration,Medium
+1563,Animals,Which animal never stops growing teeth?,Shark,Crocodile,Elephant,Rodent,D,Rodents' teeth never stop growing,Medium
+1564,Sports,What is the width of a hockey goal?,4 feet,5 feet,6 feet,7 feet,C,A hockey goal is 6 feet wide,Medium
+1565,Science,What is the pH of stomach acid?,1-2,3-4,5-6,7-8,A,Stomach acid has a pH between 1 and 2,Medium
+1566,History,Who was the first president of South Africa?,Nelson Mandela,F.W. de Klerk,Thabo Mbeki,Jacob Zuma,A,Nelson Mandela was the first president of democratic South Africa,Easy
+1567,Math,What is 8³?,412,512,612,712,B,8³ = 8 × 8 × 8 = 512,Easy
+1568,Geography,Which strait connects the Mediterranean Sea to the Atlantic?,Strait of Hormuz,Strait of Gibraltar,Bosphorus,Dardanelles,B,The Strait of Gibraltar connects the Mediterranean to the Atlantic,Easy
+1569,Science,What type of electromagnetic radiation can we feel as heat?,Visible light,Infrared,Ultraviolet,Microwaves,B,We feel infrared radiation as heat,Easy
+1570,Food,What grain is traditionally used in paella?,Couscous,Rice,Quinoa,Barley,B,Paella is made with rice (traditionally bomba rice),Easy
+1571,Technology,What does HTML stand for?,Hyper Text Markup Language,High Tech Modern Language,Home Tool Markup Language,Hyper Transfer Markup Language,A,HTML stands for Hyper Text Markup Language,Easy
+1572,Science,How many bones does a shark have?,0,50,100,200,A,Sharks have no bones - their skeleton is made of cartilage,Medium
+1573,History,What year did the Spanish Armada sail?,1578,1583,1588,1593,C,The Spanish Armada sailed in 1588,Medium
+1574,Math,What is the mean of: 10 15 20 25 30?,18,20,22,25,B,Mean = (10+15+20+25+30)/5 = 100/5 = 20,Easy
+1575,Geography,What is the longest river in South America?,Orinoco,Paraná,Amazon,Magdalena,C,The Amazon is South America's longest river,Easy
+1576,Science,What organ is affected by pneumonia?,Heart,Lungs,Liver,Kidney,B,Pneumonia is an infection of the lungs,Easy
+1577,Animals,Which animal has the largest brain?,Elephant,Blue whale,Sperm whale,Human,C,Sperm whales have the largest brain of any animal,Medium
+1578,Sports,How many players are on a field hockey team?,9,10,11,12,C,Field hockey teams have 11 players,Easy
+1579,Science,What is the chemical symbol for tin?,Ti,Tn,Sn,St,C,Sn (from Latin stannum) is the symbol for tin,Easy
+1580,History,Who was the first female pharaoh of Egypt?,Nefertiti,Hatshepsut,Cleopatra,Ankhesenamun,B,Hatshepsut was the first female pharaoh of Egypt,Medium
+1581,Math,What is 2⁹?,256,384,512,1024,C,2⁹ = 512,Easy
+1582,Geography,Which African country is known as the Rainbow Nation?,Kenya,Nigeria,South Africa,Ethiopia,C,South Africa is called the Rainbow Nation,Easy
+1583,Science,What type of rock is formed under pressure and heat?,Igneous,Sedimentary,Metamorphic,Volcanic,C,Metamorphic rocks form under pressure and heat,Easy
+1584,Food,What is traditionally the main ingredient in baba ganoush?,Chickpeas,Eggplant,Tahini,Yogurt,B,Baba ganoush is made primarily from roasted eggplant,Medium
+1585,Technology,What does USB stand for?,Universal Serial Bus,United System Bus,Universal System Bridge,Unified Serial Bridge,A,USB stands for Universal Serial Bus,Easy
+1586,Science,How many pairs of salivary glands do humans have?,2,3,4,5,B,Humans have 3 pairs of major salivary glands,Medium
+1587,History,What year did Australia become a federation?,1891,1896,1901,1906,C,Australia became a federation on January 1 1901,Medium
+1588,Math,What is the smallest perfect number?,4,6,8,12,B,6 is the smallest perfect number (1+2+3=6),Medium
+1589,Geography,What is the highest mountain in Antarctica?,Mount Erebus,Mount Vinson,Mount Sidley,Mount Tyree,B,Mount Vinson is Antarctica's highest peak,Medium
+1590,Science,What vitamin is needed for calcium absorption?,Vitamin A,Vitamin C,Vitamin D,Vitamin K,C,Vitamin D is essential for calcium absorption,Easy
+1591,Animals,Which reptile can change its skin color?,Snake,Chameleon,Gecko,Iguana,B,Chameleons are famous for changing skin color,Easy
+1592,Sports,What is the diameter of a basketball hoop?,16 inches,17 inches,18 inches,19 inches,C,A basketball hoop has a diameter of 18 inches,Easy
+1593,Science,What is the most abundant protein in the human body?,Hemoglobin,Albumin,Collagen,Keratin,C,Collagen is the most abundant protein in humans,Medium
+1594,History,Who invented the steam engine?,James Watt,Thomas Newcomen,George Stephenson,Robert Fulton,A,James Watt invented the modern steam engine,Easy
+1595,Math,What is sin²x + cos²x?,0,1,2,x,B,sin²x + cos²x = 1 (Pythagorean identity),Medium
+1596,Geography,Which country owns the Faroe Islands?,Norway,Denmark,Iceland,Sweden,B,The Faroe Islands belong to Denmark,Medium
+1597,Science,What type of acid is in vinegar?,Citric acid,Acetic acid,Lactic acid,Formic acid,B,Vinegar contains acetic acid,Easy
+1598,Food,What cheese is traditionally used in lasagna?,Mozzarella,Ricotta,Both A and B,Parmesan,C,Lasagna traditionally uses both mozzarella and ricotta,Easy
+1599,Technology,What was the first iPhone released in?,2005,2006,2007,2008,C,The first iPhone was released in 2007,Easy
+1600,Science,How many facial bones do humans have?,12,14,16,18,B,Humans have 14 facial bones,Medium
+1601,History,What year did the Ottoman Empire end?,1918,1920,1922,1924,C,The Ottoman Empire officially ended in 1922,Medium
+1602,Math,What is 14 × 15?,200,210,220,230,B,14 × 15 = 210,Easy
+1603,Geography,What is the largest city in Africa?,Lagos,Cairo,Kinshasa,Johannesburg,B,Cairo is Africa's largest city by population,Medium
+1604,Science,What element has atomic number 79?,Silver,Gold,Platinum,Mercury,B,Gold has atomic number 79,Easy
+1605,Animals,Which mammal has the longest tongue relative to body size?,Anteater,Giraffe,Pangolin,Chameleon,C,The pangolin has the longest tongue relative to body size,Hard
+1606,Sports,How many points is a field goal worth in rugby?,2,3,4,5,B,A field goal (drop goal) is worth 3 points in rugby,Medium
+1607,Science,What is the boiling point of alcohol (ethanol)?,68°C,78°C,88°C,98°C,B,Ethanol boils at approximately 78°C,Medium
+1608,History,Who was the first Qin Emperor of China?,Qin Shi Huang,Liu Bang,Wu Zetian,Kublai Khan,A,Qin Shi Huang was the first emperor of unified China,Easy
+1609,Math,What is the volume of a cube with side length 4?,16,32,48,64,D,Volume = 4³ = 64,Easy
+1610,Geography,Which sea separates Korea from Japan?,Yellow Sea,East China Sea,Sea of Japan,Philippine Sea,C,The Sea of Japan separates Korea from Japan,Easy
+1611,Science,What hormone controls blood sugar?,Insulin,Glucagon,Both A and B,Adrenaline,C,Both insulin and glucagon regulate blood sugar,Medium
+1612,Food,What is traditionally the main ingredient in ratatouille?,Tomato,Eggplant,Zucchini,All of the above,D,Ratatouille contains tomatoes eggplant zucchini and more,Easy
+1613,Technology,What does IoT stand for?,Internet of Things,Integrated Online Technology,Internet of Technology,Internal Operating Technology,A,IoT stands for Internet of Things,Easy
+1614,Science,How many types of blood cells are there?,2,3,4,5,B,There are 3 types: red white and platelets,Easy
+1615,History,What year was the Declaration of Independence signed?,1774,1775,1776,1777,C,The Declaration of Independence was signed in 1776,Easy
+1616,Math,What is the 5th prime number?,7,9,11,13,C,The 5th prime number is 11 (2 3 5 7 11),Easy
+1617,Geography,What is the smallest country in Africa?,Gambia,Seychelles,Comoros,Mauritius,B,Seychelles is Africa's smallest country,Medium
+1618,Science,What type of joint is the elbow?,Ball and socket,Hinge,Pivot,Gliding,B,The elbow is a hinge joint,Easy
+1619,Animals,Which mammal has the most powerful bite?,Lion,Hyena,Jaguar,Hippopotamus,D,The hippopotamus has the strongest bite of land mammals,Medium
+1620,Sports,How many players are on a rugby league team?,11,12,13,15,C,Rugby league teams have 13 players,Medium
+1621,Science,What is the chemical formula for glucose?,C6H10O5,C6H11O6,C6H12O6,C12H22O11,C,Glucose has the formula C6H12O6,Medium
+1622,History,Who painted the Mona Lisa?,Michelangelo,Leonardo da Vinci,Raphael,Botticelli,B,Leonardo da Vinci painted the Mona Lisa,Easy
+1623,Math,What is 40% of 250?,80,90,100,110,C,40% of 250 = 0.40 × 250 = 100,Easy
+1624,Geography,Which country has the longest coastline?,Russia,Canada,Indonesia,Australia,B,Canada has the world's longest coastline,Medium
+1625,Science,What organ produces tears?,Eye,Lacrimal gland,Eyelid,Cornea,B,The lacrimal glands produce tears,Medium
+1626,Food,What is the main ingredient in tempeh?,Rice,Wheat,Soybeans,Lentils,C,Tempeh is made from fermented soybeans,Medium
+1627,Technology,What does GUI stand for?,General User Interface,Graphical User Interface,Global User Integration,Graphical Unit Interface,B,GUI stands for Graphical User Interface,Easy
+1628,Science,How many true ribs do humans have?,5 pairs,6 pairs,7 pairs,8 pairs,C,Humans have 7 pairs of true ribs,Medium
+1629,History,What year did the Maya calendar supposedly end?,2010,2011,2012,2013,C,The Maya calendar cycle ended in 2012,Easy
+1630,Math,What is the derivative of cos(x)?,sin(x),-sin(x),cos(x),-cos(x),B,The derivative of cos(x) is -sin(x),Medium
+1631,Geography,What is the deepest freshwater lake?,Lake Superior,Lake Baikal,Lake Tanganyika,Lake Malawi,B,Lake Baikal is the world's deepest freshwater lake,Medium
+1632,Science,What type of sugar is table sugar?,Glucose,Fructose,Sucrose,Lactose,C,Table sugar is sucrose,Easy
+1633,Animals,Which bird is the fastest runner?,Emu,Ostrich,Cassowary,Rhea,B,The ostrich is the fastest running bird,Easy
+1634,Sports,How many players are on a netball team?,5,6,7,8,C,A netball team has 7 players on court,Medium
+1635,Science,What element is essential for thyroid function?,Iron,Iodine,Zinc,Selenium,B,Iodine is essential for thyroid hormone production,Easy
+1636,History,Who was the first person to sail around Cape Horn?,Francis Drake,Ferdinand Magellan,Willem Schouten,James Cook,C,Willem Schouten first sailed around Cape Horn in 1616,Hard
+1637,Math,What is 17 + 28 + 35?,70,75,80,85,C,17 + 28 + 35 = 80,Easy
+1638,Geography,Which Asian country is known as the Land of the Rising Sun?,China,Korea,Japan,Thailand,C,Japan is known as the Land of the Rising Sun,Easy
+1639,Science,What is the strongest muscle based on weight?,Masseter,Tongue,Heart,Gluteus maximus,A,The masseter (jaw muscle) is strongest by weight,Medium
+1640,Food,What type of tea is oolong?,Green tea,Black tea,Semi-oxidized tea,White tea,C,Oolong is a semi-oxidized tea between green and black,Medium
+1641,Technology,What does CPU stand for?,Central Processing Unit,Computer Processing Unit,Central Program Unit,Computer Program Unit,A,CPU stands for Central Processing Unit,Easy
+1642,Science,How many adult teeth should humans have?,28,30,32,34,C,Adults should have 32 teeth including wisdom teeth,Easy
+1643,History,What year did Napoleon become Emperor?,1799,1802,1804,1806,C,Napoleon became Emperor of France in 1804,Medium
+1644,Math,What is the next number: 1 4 9 16 25?,30,36,42,49,B,These are perfect squares; next is 6² = 36,Easy
+1645,Geography,What is the largest landlocked country?,Mongolia,Kazakhstan,Chad,Bolivia,B,Kazakhstan is the world's largest landlocked country,Medium
+1646,Science,What vitamin deficiency causes rickets?,Vitamin A,Vitamin C,Vitamin D,Vitamin K,C,Vitamin D deficiency causes rickets,Easy
+1647,Animals,How many species of bears exist?,6,7,8,9,C,There are 8 species of bears,Medium
+1648,Sports,What is the maximum weight for a lightweight boxer?,130 lbs,135 lbs,140 lbs,145 lbs,B,The lightweight limit in boxing is 135 pounds,Medium
+1649,Science,What is the speed of light in a vacuum?,186000 miles/second,200000 miles/second,220000 miles/second,250000 miles/second,A,Light travels at approximately 186000 miles per second,Easy
+1650,History,In which year did Australia become independent?,1901,1931,1942,1986,A,Australia became independent with federation in 1901,Medium`;
 
 // Parse CSV data into JavaScript objects with correct field names
 const parseQuestionsData = (): any[] => {
