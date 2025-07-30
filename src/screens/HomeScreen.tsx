@@ -84,7 +84,14 @@ const HomeScreen: React.FC = () => {
     completedGoalsCount, 
     totalGoals,
     isInitialized 
-  } = useHomeIntegration();
+  } = useHomeIntegration({
+    onDailyGoalCompleted: async (data) => {
+      console.log(`Goal completed: ${data.title} (+${data.timeBonus}s)`);
+      SoundService.playStreak();
+      // Update daily streak when any goal is completed
+      await updateDailyStreakOnGoalCompletion();
+    }
+  });
   
   // ✅ LIVE SCORE DATA - Real-time updates
   const { 
@@ -192,6 +199,43 @@ const HomeScreen: React.FC = () => {
     }
     setIsRefreshing(false);
   };
+
+  const updateDailyStreakOnGoalCompletion = async () => {
+    try {
+      const today = new Date().toDateString();
+      
+      // Only update streak once per day (first goal completion)
+      if (lastPlayedDate !== today) {
+        const currentStreak = await AsyncStorage.getItem('@BrainBites:dailyStreak');
+        const lastDate = await AsyncStorage.getItem('@BrainBites:lastPlayedDate');
+        
+        let newStreak = 1; // Default to 1 for today
+        
+        if (lastDate) {
+          const last = new Date(lastDate);
+          const daysDiff = Math.floor((new Date().getTime() - last.getTime()) / (1000 * 60 * 60 * 24));
+          
+          if (daysDiff === 1) {
+            // Consecutive day - increment streak
+            newStreak = parseInt(currentStreak || '0', 10) + 1;
+          }
+          // If more than 1 day, streak resets to 1 (already set above)
+        }
+        
+        // Save updated streak data
+        await AsyncStorage.setItem('@BrainBites:dailyStreak', newStreak.toString());
+        await AsyncStorage.setItem('@BrainBites:lastPlayedDate', today);
+        
+        // Update local state
+        setDailyStreak(newStreak);
+        setLastPlayedDate(today);
+        
+        console.log(`🔥 Daily streak updated: ${newStreak} days`);
+      }
+    } catch (error) {
+      console.error('Error updating daily streak:', error);
+    }
+  };
   
   const loadDailyStreak = async () => {
     try {
@@ -269,6 +313,11 @@ const HomeScreen: React.FC = () => {
     const today = new Date().getDay();
     const mondayFirst = [(today + 6) % 7]; // Convert to Monday-first
     
+    // Check if any daily goal has been completed (claimed) today
+    const hasCompletedAnyGoalToday = dailyGoals.some(goal => goal.claimed);
+    const todayString = new Date().toDateString();
+    const hasPlayedToday = lastPlayedDate === todayString || hasCompletedAnyGoalToday;
+    
     return (
       <View style={styles.streakContainer}>
         <View style={styles.streakHeader}>
@@ -279,7 +328,7 @@ const HomeScreen: React.FC = () => {
         <View style={styles.streakDays}>
           {days.map((day, index) => {
             const isToday = index === mondayFirst[0];
-            const isCompleted = lastPlayedDate === new Date().toDateString() && isToday;
+            const isCompleted = hasPlayedToday && isToday;
             const isPast = index < mondayFirst[0];
             
             return (
@@ -297,6 +346,9 @@ const HomeScreen: React.FC = () => {
             );
           })}
         </View>
+        {hasCompletedAnyGoalToday && (
+          <Text style={styles.streakMessage}>🎉 You did it today!</Text>
+        )}
       </View>
     );
   };
@@ -561,6 +613,13 @@ const styles = StyleSheet.create({
   streakDayPast: {
     backgroundColor: '#81C784',
     borderColor: '#81C784',
+  },
+  streakMessage: {
+    fontSize: 14,
+    color: '#4CAF50',
+    fontWeight: '600',
+    textAlign: 'center',
+    marginTop: 8,
   },
   difficultySection: {
     marginBottom: 24,

@@ -316,8 +316,8 @@ class DailyGoalsService {
 
     try {
       // Add time to timer using updated integration service
-      // Convert reward points to minutes (1 minute per 10 points)
-      const timeInMinutes = Math.floor(goal.reward / 10);
+      // Convert reward from seconds to minutes
+      const timeInMinutes = Math.floor(goal.reward / 60);
       console.log(`🎯 [DailyGoals] Claiming reward: ${timeInMinutes} minutes for ${goal.title}`);
       
       // Initialize timer integration if needed

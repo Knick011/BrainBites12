@@ -1,8 +1,9 @@
 // src/components/Timer/TimerWidget.tsx
 // ✅ ENHANCED TIMER WIDGET WITH SCREEN TIME DISPLAY
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Animated, NativeModules } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import LinearGradient from 'react-native-linear-gradient';
 import HybridTimerService from '../../services/HybridTimerService';
 import theme from '../../styles/theme';
 
@@ -28,8 +29,9 @@ export const TimerWidget: React.FC<TimerWidgetProps> = ({ style, onPress }) => {
   const pulseAnim = React.useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    console.log('🕐 [TimerWidget] Initializing enhanced timer widget...');
+    console.log('🕐 [TimerWidget] Initializing timer widget...');
     
+    let interval: NodeJS.Timeout;
     let unsubscribe: (() => void) | null = null;
     
     const initializeTimer = async () => {
@@ -45,12 +47,43 @@ export const TimerWidget: React.FC<TimerWidgetProps> = ({ style, onPress }) => {
           setIsLoading(false);
         });
         
-        // Get initial data
-        const initialData = HybridTimerService.getCurrentData();
-        if (initialData) {
-          setTimerData(initialData);
-          setIsLoading(false);
-        }
+        // Get initial data directly from Android service
+        const loadData = async () => {
+          try {
+            const currentData = HybridTimerService.getCurrentData();
+            if (currentData) {
+              setTimerData(currentData);
+              setError(null);
+            } else {
+              // Try to get data directly from native modules
+              const { ScreenTimeModule } = NativeModules;
+              if (ScreenTimeModule && ScreenTimeModule.getTimerStatus) {
+                const nativeData = await ScreenTimeModule.getTimerStatus();
+                if (nativeData) {
+                  const formattedData: TimerData = {
+                    remainingTime: nativeData.remainingTime || 0,
+                    todayScreenTime: nativeData.todayScreenTime || 0,
+                    isAppForeground: nativeData.isAppForeground || false,
+                    isTracking: nativeData.isTracking || false
+                  };
+                  setTimerData(formattedData);
+                  setError(null);
+                }
+              }
+            }
+            setIsLoading(false);
+          } catch (err) {
+            console.error('❌ [TimerWidget] Error loading data:', err);
+            setError('Timer unavailable');
+            setIsLoading(false);
+          }
+        };
+        
+        // Load initial data
+        await loadData();
+        
+        // Refresh data every 10 seconds
+        interval = setInterval(loadData, 10000);
         
         // Fade in animation
         Animated.timing(fadeAnim, {
@@ -60,7 +93,7 @@ export const TimerWidget: React.FC<TimerWidgetProps> = ({ style, onPress }) => {
         }).start();
         
       } catch (err: any) {
-        console.error('❌ [TimerWidget] Failed to initialize hybrid timer:', err);
+        console.error('❌ [TimerWidget] Failed to initialize timer:', err);
         setError('Timer unavailable');
         setIsLoading(false);
       }
@@ -70,6 +103,7 @@ export const TimerWidget: React.FC<TimerWidgetProps> = ({ style, onPress }) => {
     
     return () => {
       unsubscribe?.();
+      if (interval) clearInterval(interval);
     };
   }, []);
 
@@ -206,44 +240,50 @@ export const TimerWidget: React.FC<TimerWidgetProps> = ({ style, onPress }) => {
       ]}
     >
       <TouchableOpacity 
-        style={styles.timerWidget}
         onPress={onPress}
         activeOpacity={0.8}
+        style={styles.touchable}
       >
-        <View style={styles.timeDisplay}>
-          <View style={styles.timeRow}>
+        <LinearGradient
+          colors={timerData.remainingTime > 0 ? ['#4CAF50', '#45A049'] : ['#FF5722', '#F4511E']}
+          style={styles.timerWidget}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <View style={styles.widgetHeader}>
+            <Icon 
+              name="timer-outline" 
+              size={24} 
+              color="white" 
+            />
+            <Text style={styles.headerText}>Screen Time</Text>
+          </View>
+          
+          <View style={styles.timeDisplay}>
             <Text style={styles.timeLeft}>
               {formatTimeLeft(timerData.remainingTime)}
             </Text>
-            <View style={styles.statusBadge}>
-              <View 
-                style={[
-                  styles.statusDot, 
-                  { backgroundColor: getStatusColor() }
-                ]} 
-              />
-              <Text style={[styles.statusText, { color: getStatusColor() }]}>
-                {getStatusText()}
-              </Text>
+            <View style={styles.statusRow}>
+              <View style={styles.statusBadge}>
+                <Icon 
+                  name={getStatusIcon()} 
+                  size={16} 
+                  color="rgba(255,255,255,0.8)" 
+                />
+                <Text style={styles.statusText}>
+                  {getStatusText()}
+                </Text>
+              </View>
             </View>
           </View>
           
           <View style={styles.screenTimeRow}>
-            <Icon name="clock-outline" size={14} color={theme.colors.textSecondary} />
-            <Text style={styles.screenTime}>
+            <Icon name="clock-outline" size={16} color="rgba(255,255,255,0.7)" />
+            <Text style={styles.screenTimeText}>
               {formatScreenTime(timerData.todayScreenTime)}
             </Text>
           </View>
-        </View>
-        
-        <View style={styles.statusIndicator}>
-          <Icon 
-            name={getStatusIcon()} 
-            size={20} 
-            color={getStatusColor()} 
-            style={styles.statusIcon}
-          />
-        </View>
+        </LinearGradient>
       </TouchableOpacity>
     </Animated.View>
   );
@@ -253,16 +293,26 @@ const styles = StyleSheet.create({
   container: {
     marginVertical: 8,
   },
+  touchable: {
+    borderRadius: 20,
+    overflow: 'hidden',
+    ...theme.shadows.medium,
+  },
   timerWidget: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
+    padding: 20,
+    borderRadius: 20,
+    minHeight: 120,
+  },
+  widgetHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    ...theme.shadows.small,
-    borderLeftWidth: 4,
-    borderLeftColor: theme.colors.primary,
+    marginBottom: 12,
+  },
+  headerText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
   },
   timeDisplay: {
     flex: 1,
@@ -274,17 +324,22 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   timeLeft: {
-    fontSize: 16,
+    fontSize: 28,
     fontWeight: 'bold',
-    color: theme.colors.textPrimary,
+    color: 'white',
+    marginBottom: 4,
+  },
+  statusRow: {
+    marginBottom: 8,
   },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.05)',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+    alignSelf: 'flex-start',
   },
   statusDot: {
     width: 6,
@@ -293,17 +348,19 @@ const styles = StyleSheet.create({
     marginRight: 4,
   },
   statusText: {
-    fontSize: 10,
-    fontWeight: '500',
+    fontSize: 12,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.9)',
+    marginLeft: 6,
   },
   screenTimeRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  screenTime: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-    marginLeft: 4,
+  screenTimeText: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.8)',
+    marginLeft: 8,
   },
   statusIndicator: {
     alignItems: 'center',

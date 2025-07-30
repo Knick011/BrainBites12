@@ -379,15 +379,15 @@ class ScreenTimeService : Service() {
         
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_menu_recent_history)
-            .setContentTitle("Screen Time: $timeText")
-            .setContentText("$statusText • Used today: $usedTimeText")
+            .setContentTitle("Time left: $timeText")
+            .setContentText("$statusText • Screen time today: $usedTimeText")
             .setContentIntent(pendingIntent)
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setSilent(true)
             .setColor(0xFFFF9F1C.toInt())
             .setStyle(NotificationCompat.BigTextStyle()
-                .bigText("$statusText\nTime remaining: $timeText\nUsed today: $usedTimeText"))
+                .bigText("Screen time today: $usedTimeText"))
             .build()
     }
     

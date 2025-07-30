@@ -49,9 +49,12 @@ class HybridTimerService {
         const subscription = emitter.addListener('timerUpdate', (data: any) => {
           console.log('🔄 [HybridTimer] BrainBitesTimer update:', data);
           
+          // Preserve existing todayScreenTime if available
+          const existingScreenTime = this.currentData?.todayScreenTime || 0;
+          
           this.currentData = {
             remainingTime: data.remainingTime || 0,
-            todayScreenTime: 0, // BrainBitesTimer doesn't track this
+            todayScreenTime: existingScreenTime, // Preserve existing screen time data
             isAppForeground: data.isAppForeground || false,
             isTracking: data.isTracking || false
           };

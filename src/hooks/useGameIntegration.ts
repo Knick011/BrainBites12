@@ -220,7 +220,7 @@ export const useQuizIntegration = () => {
 /**
  * Hook for Home Screen - provides live score updates and handles navigation
  */
-export const useHomeIntegration = () => {
+export const useHomeIntegration = (callbacks?: GameIntegrationCallbacks) => {
   const scoreData = useLiveGameStore(state => state.scoreData);
   const dailyGoals = useLiveGameStore(state => state.dailyGoals);
   const refreshFromStorage = useLiveGameStore(state => state.refreshFromStorage);
@@ -240,10 +240,12 @@ export const useHomeIntegration = () => {
       if (data.deltaScore > 0) {
         console.log(`Score increased by ${data.deltaScore}`);
       }
+      callbacks?.onScoreUpdate?.(data);
     },
     onDailyGoalCompleted: (data) => {
       console.log(`Goal completed: ${data.title} (+${data.timeBonus}s)`);
       SoundService.playStreak();
+      callbacks?.onDailyGoalCompleted?.(data);
     }
   });
   
@@ -300,8 +302,8 @@ export const useDailyGoalsIntegration = () => {
       await claimGoalReward(goalId);
       
       // ✅ ADD TIMER INTEGRATION - Add time for goal completion
-      // Calculate minutes based on reward points (1 minute per 10 points)
-      const timeToAdd = Math.floor(goal.reward / 10); // 1 minute per 10 points
+      // Convert reward from seconds to minutes
+      const timeToAdd = Math.floor(goal.reward / 60);
       
       if (timeToAdd > 0) {
         console.log(`🎯 [DailyGoals] Adding ${timeToAdd} minutes for goal completion`);
