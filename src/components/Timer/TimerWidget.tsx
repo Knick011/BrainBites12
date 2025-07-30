@@ -31,79 +31,104 @@ export const TimerWidget: React.FC<TimerWidgetProps> = ({ style, onPress }) => {
   useEffect(() => {
     console.log('🕐 [TimerWidget] Initializing timer widget...');
     
-    let interval: NodeJS.Timeout;
-    let unsubscribe: (() => void) | null = null;
+    let updateInterval: NodeJS.Timeout;
+    let isMounted = true;
     
     const initializeTimer = async () => {
       try {
-        // Initialize hybrid timer service
+        // Use HybridTimerService for initial setup
         await HybridTimerService.initialize();
         
-        // Listen for timer updates
-        unsubscribe = HybridTimerService.addListener((data: TimerData) => {
-          console.log('🕐 [TimerWidget] Timer update received:', data);
-          setTimerData(data);
-          setError(null);
-          setIsLoading(false);
-        });
-        
-        // Get initial data directly from Android service
-        const loadData = async () => {
-          try {
-            const currentData = HybridTimerService.getCurrentData();
-            if (currentData) {
-              setTimerData(currentData);
-              setError(null);
-            } else {
-              // Try to get data directly from native modules
-              const { ScreenTimeModule } = NativeModules;
-              if (ScreenTimeModule && ScreenTimeModule.getTimerStatus) {
-                const nativeData = await ScreenTimeModule.getTimerStatus();
-                if (nativeData) {
-                  const formattedData: TimerData = {
-                    remainingTime: nativeData.remainingTime || 0,
-                    todayScreenTime: nativeData.todayScreenTime || 0,
-                    isAppForeground: nativeData.isAppForeground || false,
-                    isTracking: nativeData.isTracking || false
-                  };
-                  setTimerData(formattedData);
-                  setError(null);
-                }
-              }
-            }
-            setIsLoading(false);
-          } catch (err) {
-            console.error('❌ [TimerWidget] Error loading data:', err);
-            setError('Timer unavailable');
+        // Listen for timer updates from HybridTimerService
+        const unsubscribe = HybridTimerService.addListener((data: TimerData) => {
+          if (isMounted) {
+            console.log('🕐 [TimerWidget] Timer update received:', data);
+            setTimerData(data);
+            setError(null);
             setIsLoading(false);
           }
+        });
+        
+        // Also set up direct polling as backup
+        const { ScreenTimeModule } = NativeModules;
+        
+        if (ScreenTimeModule) {
+          const pollTimerStatus = async () => {
+            if (!isMounted) return;
+            
+            try {
+              // Get remaining time and today's screen time separately
+              const [remainingTime, todayScreenTime] = await Promise.all([
+                ScreenTimeModule.getRemainingTime(),
+                ScreenTimeModule.getTodayScreenTime()
+              ]);
+              
+              if (isMounted) {
+                setTimerData({
+                  remainingTime: remainingTime || 0,
+                  todayScreenTime: todayScreenTime || 0,
+                  isAppForeground: false,
+                  isTracking: remainingTime > 0
+                });
+                setError(null);
+                setIsLoading(false);
+              }
+            } catch (err) {
+              console.warn('⚠️ [TimerWidget] Polling fallback failed:', err);
+              // Don't set error if HybridTimerService is working
+            }
+          };
+          
+          // Initial poll
+          await pollTimerStatus();
+          
+          // Set up polling every 5 seconds as backup
+          updateInterval = setInterval(pollTimerStatus, 5000);
+        } else {
+          // If no native module, just rely on HybridTimerService
+          console.log('ℹ️ [TimerWidget] No ScreenTimeModule, using HybridTimerService only');
+          setIsLoading(false);
+        }
+        
+        // Return cleanup function
+        return () => {
+          isMounted = false;
+          unsubscribe();
+          if (updateInterval) {
+            clearInterval(updateInterval);
+          }
         };
-        
-        // Load initial data
-        await loadData();
-        
-        // Refresh data every 10 seconds
-        interval = setInterval(loadData, 10000);
-        
-        // Fade in animation
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 500,
-          useNativeDriver: true,
-        }).start();
-        
-      } catch (err: any) {
-        console.error('❌ [TimerWidget] Failed to initialize timer:', err);
-        setError('Timer unavailable');
-        setIsLoading(false);
+      } catch (error) {
+        console.error('❌ [TimerWidget] Failed to initialize:', error);
+        if (isMounted) {
+          setError('Timer not available');
+          setIsLoading(false);
+        }
       }
     };
     
-    initializeTimer();
+    let cleanup: (() => void) | undefined;
     
+    initializeTimer().then(cleanupFn => {
+      cleanup = cleanupFn;
+    });
+    
+    // Animate in
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 500,
+      useNativeDriver: true,
+    }).start();
+    
+    // Cleanup
     return () => {
-      unsubscribe?.();
-      if (interval) clearInterval(interval);
+      isMounted = false;
+      if (cleanup) {
+        cleanup();
+      }
+      if (updateInterval) {
+        clearInterval(updateInterval);
+      }
     };
   }, []);
 
@@ -202,29 +227,54 @@ export const TimerWidget: React.FC<TimerWidgetProps> = ({ style, onPress }) => {
 
   if (isLoading) {
     return (
-      <View style={[styles.container, style]}>
-        <View style={[styles.timerWidget, styles.loadingState]}>
-          <View style={styles.loadingContent}>
-            <Icon name="loading" size={20} color={theme.colors.textSecondary} />
-            <Text style={styles.loadingText}>Loading timer...</Text>
-          </View>
-        </View>
-      </View>
+      <Animated.View style={[styles.container, { opacity: fadeAnim }, style]}>
+        <TouchableOpacity
+          style={styles.touchable}
+          onPress={onPress}
+          activeOpacity={0.8}
+        >
+          <LinearGradient
+            colors={['#E0E0E0', '#CCCCCC']}
+            style={styles.timerWidget}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            <View style={styles.loadingContainer}>
+              <Icon name="timer-sand" size={32} color="white" />
+              <Text style={styles.loadingText}>Initializing...</Text>
+            </View>
+          </LinearGradient>
+        </TouchableOpacity>
+      </Animated.View>
     );
   }
 
   if (error || !timerData) {
+    // Show a placeholder widget that can still be tapped
     return (
-      <TouchableOpacity 
-        style={[styles.container, style]} 
-        onPress={loadInitialState}
-        activeOpacity={0.7}
-      >
-        <View style={[styles.timerWidget, styles.errorState]}>
-          <Icon name="refresh" size={16} color={theme.colors.textSecondary} />
-          <Text style={styles.errorText}>Tap to retry</Text>
-        </View>
-      </TouchableOpacity>
+      <Animated.View style={[styles.container, { opacity: fadeAnim }, style]}>
+        <TouchableOpacity
+          style={styles.touchable}
+          onPress={onPress}
+          activeOpacity={0.8}
+        >
+          <LinearGradient
+            colors={['#FF9F1C', '#FF7F00']}
+            style={styles.timerWidget}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            <View style={styles.widgetHeader}>
+              <Icon name="timer-outline" size={24} color="white" />
+              <Text style={styles.headerText}>Screen Time</Text>
+            </View>
+            <View style={styles.timeDisplay}>
+              <Text style={styles.timeLeft}>Tap to Setup</Text>
+              <Text style={styles.statusText}>Timer not started</Text>
+            </View>
+          </LinearGradient>
+        </TouchableOpacity>
+      </Animated.View>
     );
   }
 
@@ -392,5 +442,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: theme.colors.textSecondary,
     marginLeft: 8,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 8,
+    fontSize: 14,
+    color: 'white',
+    opacity: 0.9,
   },
 });

@@ -204,29 +204,35 @@ const HomeScreen: React.FC = () => {
     try {
       const today = new Date().toDateString();
       
-      // Only update streak once per day (first goal completion)
-      if (lastPlayedDate !== today) {
-        const currentStreak = await AsyncStorage.getItem('@BrainBites:dailyStreak');
-        const lastDate = await AsyncStorage.getItem('@BrainBites:lastPlayedDate');
+      // Check if any daily goal has been claimed today
+      const goalsData = await AsyncStorage.getItem('@BrainBites:liveGameStore:claimedRewards');
+      const claimedRewards = goalsData ? JSON.parse(goalsData) : {};
+      const hasClaimedToday = Object.values(claimedRewards).some((date: any) => 
+        new Date(date).toDateString() === today
+      );
+      
+      // Also check if user played quiz today
+      const hasPlayedQuiz = lastPlayedDate === today;
+      
+      if (hasClaimedToday || hasPlayedQuiz) {
+        let newStreak = 1;
         
-        let newStreak = 1; // Default to 1 for today
-        
-        if (lastDate) {
-          const last = new Date(lastDate);
-          const daysDiff = Math.floor((new Date().getTime() - last.getTime()) / (1000 * 60 * 60 * 24));
+        if (lastPlayedDate) {
+          const lastDate = new Date(lastPlayedDate);
+          const todayDate = new Date(today);
+          const diffTime = Math.abs(todayDate.getTime() - lastDate.getTime());
+          const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
           
-          if (daysDiff === 1) {
-            // Consecutive day - increment streak
-            newStreak = parseInt(currentStreak || '0', 10) + 1;
+          if (diffDays === 0) {
+            newStreak = dailyStreak;
+          } else if (diffDays === 1) {
+            newStreak = dailyStreak + 1;
           }
-          // If more than 1 day, streak resets to 1 (already set above)
         }
         
-        // Save updated streak data
         await AsyncStorage.setItem('@BrainBites:dailyStreak', newStreak.toString());
         await AsyncStorage.setItem('@BrainBites:lastPlayedDate', today);
         
-        // Update local state
         setDailyStreak(newStreak);
         setLastPlayedDate(today);
         
