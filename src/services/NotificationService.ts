@@ -195,6 +195,8 @@ class NotificationServiceClass {
     );
   }
 
+
+
   private async cancelAllNotifications() {
     // In a real app, you'd cancel all scheduled notifications here
     console.log('All notifications cancelled');

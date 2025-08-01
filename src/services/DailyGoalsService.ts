@@ -241,13 +241,25 @@ class DailyGoalsService {
   }
 
   private generateDailyGoals(): DailyGoal[] {
-    // Shuffle the pool and select 3 different types of goals
-    const shuffled = [...DAILY_GOALS_POOL].sort(() => 0.5 - Math.random());
+    // Separate regular goals and honor goals
+    const regularGoals = DAILY_GOALS_POOL.filter(goal => !goal.honorBased);
+    const honorGoals = DAILY_GOALS_POOL.filter(goal => goal.honorBased);
+    
+    // Shuffle both pools
+    const shuffledRegular = [...regularGoals].sort(() => 0.5 - Math.random());
+    const shuffledHonor = [...honorGoals].sort(() => 0.5 - Math.random());
+    
+    console.log('🎯 [DailyGoals] Goal pools:', {
+      regularPool: regularGoals.length,
+      honorPool: honorGoals.length,
+      honorTitles: honorGoals.map(g => g.title)
+    });
+    
     const selected: DailyGoal[] = [];
     const usedTypes = new Set<string>();
 
-    // Try to get different types of goals
-    for (const goalTemplate of shuffled) {
+    // Select 3 regular goals (prefer different types)
+    for (const goalTemplate of shuffledRegular) {
       if (selected.length >= 3) break;
       
       // Prefer different types, but allow duplicates if needed
@@ -264,9 +276,9 @@ class DailyGoalsService {
       }
     }
 
-    // If we don't have 3 goals, fill with remaining goals
-    while (selected.length < 3 && selected.length < shuffled.length) {
-      const remaining = shuffled.filter(g => !selected.find(s => s.id === g.id));
+    // If we don't have 3 regular goals, fill with remaining regular goals
+    while (selected.length < 3 && selected.length < shuffledRegular.length) {
+      const remaining = shuffledRegular.filter(g => !selected.find(s => s.id === g.id));
       if (remaining.length > 0) {
         const goalTemplate = remaining[0];
         selected.push({
@@ -282,7 +294,26 @@ class DailyGoalsService {
       }
     }
 
-    console.log('🎯 [DailyGoals] Generated goals:', selected.map(g => `${g.title} (${g.type})`));
+    // Add 2 honor goals
+    for (let i = 0; i < 2 && i < shuffledHonor.length; i++) {
+      const goalTemplate = shuffledHonor[i];
+      selected.push({
+        ...goalTemplate,
+        current: 0,
+        progress: 0,
+        completed: false,
+        claimed: false,
+        questionsAnswered: 0
+      });
+    }
+
+    console.log('🎯 [DailyGoals] Generated goals:', selected.map(g => `${g.title} (${g.type}${g.honorBased ? ' - honor' : ''})`));
+    console.log('🎯 [DailyGoals] Goal breakdown:', {
+      total: selected.length,
+      regular: selected.filter(g => !g.honorBased).length,
+      honor: selected.filter(g => g.honorBased).length,
+      honorGoals: selected.filter(g => g.honorBased).map(g => g.title)
+    });
     return selected;
   }
 
@@ -302,6 +333,9 @@ class DailyGoalsService {
 
     for (const goal of this.goals) {
       if (goal.completed) continue;
+      
+      // Skip honor-based goals - they are manually completed by user
+      if (goal.honorBased) continue;
 
       const oldProgress = goal.progress;
 
@@ -351,6 +385,26 @@ class DailyGoalsService {
     if (hasChanges) {
       await this.saveGoals();
       this.notifyListeners();
+    }
+  }
+
+  async completeHonorGoal(goalId: string): Promise<boolean> {
+    const goal = this.goals.find(g => g.id === goalId);
+    if (!goal || !goal.honorBased || goal.completed) {
+      return false;
+    }
+
+    try {
+      goal.completed = true;
+      goal.progress = 100;
+      await this.saveGoals();
+      this.notifyListeners();
+      
+      console.log(`✅ [DailyGoals] Honor goal completed: ${goal.title}`);
+      return true;
+    } catch (error) {
+      console.error('❌ [DailyGoals] Error completing honor goal:', error);
+      return false;
     }
   }
 
@@ -444,6 +498,22 @@ class DailyGoalsService {
       .reduce((total, g) => total + g.reward, 0);
   }
 
+  // Debug method to check current goals
+  debugGoals(): void {
+    console.log('🔍 [DailyGoals] Current goals debug:', {
+      total: this.goals.length,
+      regular: this.goals.filter(g => !g.honorBased).length,
+      honor: this.goals.filter(g => g.honorBased).length,
+      allGoals: this.goals.map(g => ({
+        title: g.title,
+        type: g.type,
+        honorBased: g.honorBased,
+        completed: g.completed,
+        claimed: g.claimed
+      }))
+    });
+  }
+
   addListener(callback: (goals: DailyGoal[]) => void): () => void {
     this.listeners.push(callback);
     return () => {
@@ -466,6 +536,16 @@ class DailyGoalsService {
 
   async resetForTesting(): Promise<void> {
     console.log('🧪 [DailyGoals] Resetting for testing');
+    await AsyncStorage.removeItem('@BrainBites:dailyGoals');
+    await AsyncStorage.removeItem('@BrainBites:lastGoalReset');
+    this.goals = [];
+    this.isInitialized = false;
+    await this.initialize();
+  }
+
+  // Force regenerate goals for today (useful for testing)
+  async forceRegenerateGoals(): Promise<void> {
+    console.log('🔄 [DailyGoals] Force regenerating goals');
     await AsyncStorage.removeItem('@BrainBites:dailyGoals');
     await AsyncStorage.removeItem('@BrainBites:lastGoalReset');
     this.goals = [];

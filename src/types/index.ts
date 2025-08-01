@@ -7,7 +7,6 @@ export type RootStackParamList = {
   Categories: undefined;
   DailyGoals: undefined;
   Leaderboard: undefined;
-  Settings: undefined;
   Welcome: undefined;
 };
 
