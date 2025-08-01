@@ -195,6 +195,42 @@ class NotificationServiceClass {
     );
   }
 
+  async scheduleMorningReminder(time: Date) {
+    try {
+      // For Android, use native module
+      const { NativeModules } = require('react-native');
+      const { NotificationModule } = NativeModules;
+      
+      if (NotificationModule && NotificationModule.scheduleMorningReminder) {
+        const hours = time.getHours();
+        const minutes = time.getMinutes();
+        
+        await NotificationModule.scheduleMorningReminder(hours, minutes, {
+          title: "🌅 Time to Start Your Day Right!",
+          body: "Let's begin with some brain-boosting questions! Complete a daily goal to keep your streak alive.",
+          data: { type: 'morning_reminder' }
+        });
+        
+        console.log(`✅ Morning reminder scheduled for ${hours}:${minutes}`);
+      }
+    } catch (error) {
+      console.error('Failed to schedule morning reminder:', error);
+    }
+  }
+
+  async cancelMorningReminder() {
+    try {
+      const { NativeModules } = require('react-native');
+      const { NotificationModule } = NativeModules;
+      
+      if (NotificationModule && NotificationModule.cancelMorningReminder) {
+        await NotificationModule.cancelMorningReminder();
+      }
+    } catch (error) {
+      console.error('Failed to cancel morning reminder:', error);
+    }
+  }
+
 
 
   private async cancelAllNotifications() {

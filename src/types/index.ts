@@ -8,6 +8,7 @@ export type RootStackParamList = {
   DailyGoals: undefined;
   Leaderboard: undefined;
   Welcome: undefined;
+  Settings: undefined;
 };
 
 export interface Question {

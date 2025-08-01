@@ -448,7 +448,15 @@ const HomeScreen: React.FC = () => {
       >
         <Animated.View style={[styles.header, { opacity: fadeAnim }]}>
           <Text style={styles.headerTitle}>Brain Bites</Text>
-          <ScoreDisplay score={dailyScore} />
+          <View style={styles.headerRight}>
+            <ScoreDisplay score={dailyScore} />
+            <TouchableOpacity 
+              onPress={() => navigation.navigate('Settings')}
+              style={styles.settingsButton}
+            >
+              <Icon name="cog-outline" size={28} color="#666" />
+            </TouchableOpacity>
+          </View>
         </Animated.View>
 
         {/* Timer Widget */}
@@ -624,11 +632,25 @@ const styles = StyleSheet.create({
     marginTop: 16,
     marginBottom: 24,
   },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
   headerTitle: {
     fontSize: 32,
     fontWeight: 'bold',
     color: '#333',
     fontFamily: Platform.OS === 'ios' ? 'Avenir-Black' : 'sans-serif-black',
+  },
+  settingsButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'white',
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...theme.shadows.small,
   },
   streakContainer: {
     backgroundColor: 'white',

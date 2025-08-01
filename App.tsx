@@ -22,6 +22,7 @@ import CategoriesScreen from './src/screens/CategoriesScreen';
 import QuizScreen from './src/screens/QuizScreen';
 import LeaderboardScreen from './src/screens/LeaderboardScreen';
 import DailyGoalsScreen from './src/screens/DailyGoalsScreen';
+import SettingsScreen from './src/screens/SettingsScreen';
 
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -244,6 +245,11 @@ const App: React.FC = () => {
               <Stack.Screen 
                 name="DailyGoals" 
                 component={DailyGoalsScreen}
+              />
+              <Stack.Screen 
+                name="Settings" 
+                component={SettingsScreen}
+                options={{ headerShown: false }}
               />
 
             </Stack.Navigator>
