@@ -89,7 +89,7 @@ const HomeScreen: React.FC = () => {
       console.log(`Goal completed: ${data.title} (+${data.timeBonus}s)`);
       SoundService.playStreak();
       // Update daily streak when any goal is completed
-      await updateDailyStreakOnGoalCompletion();
+      await updateDailyStreak();
     }
   });
   
@@ -123,6 +123,45 @@ const HomeScreen: React.FC = () => {
       handleRefresh();
     }, [])
   );
+
+  // Listen for daily goal claims
+  useEffect(() => {
+    const eventEmitter = new (require('react-native').NativeEventEmitter)();
+    const subscription = eventEmitter.addListener('dailyGoalClaimed', async (data) => {
+      console.log('🎯 [HomeScreen] Daily goal claimed:', data);
+      
+      // Update the daily streak immediately
+      await updateDailyStreakFromGoal();
+      
+      // Show celebration mascot
+      setMascotType('excited');
+      setMascotMessage(`🎉 Goal Completed! 🎉\n\n${data.goalTitle}\nYou earned ${Math.floor(data.reward / 60)} minutes!\n\nYour daily streak continues!`);
+      setShowMascot(true);
+      
+      setTimeout(() => {
+        setShowMascot(false);
+      }, 5000);
+    });
+    
+    return () => subscription.remove();
+  }, []);
+
+  // Listen for goal completion mascot events
+  useEffect(() => {
+    const eventEmitter = new (require('react-native').NativeEventEmitter)();
+    const subscription = eventEmitter.addListener('showGoalCompletedMascot', (data) => {
+      setMascotType('excited');
+      setMascotMessage(`🎉 Goal Completed! 🎉\n\n${data.goalTitle}\nYou earned ${Math.floor(data.reward / 60)} minutes!\n\nCheck your Daily Goals for more rewards!`);
+      setShowMascot(true);
+      
+      // Auto-hide after 5 seconds
+      setTimeout(() => {
+        setShowMascot(false);
+      }, 5000);
+    });
+    
+    return () => subscription.remove();
+  }, []);
   
   useEffect(() => {
     initializeHome();
@@ -200,7 +239,7 @@ const HomeScreen: React.FC = () => {
     setIsRefreshing(false);
   };
 
-  const updateDailyStreakOnGoalCompletion = async () => {
+  const updateDailyStreak = async () => {
     try {
       const today = new Date().toDateString();
       
@@ -214,59 +253,73 @@ const HomeScreen: React.FC = () => {
       // Also check if user played quiz today
       const hasPlayedQuiz = lastPlayedDate === today;
       
+      // Get the last activity date (either quiz or goal claim)
+      const lastGoalClaimedDate = await AsyncStorage.getItem('@BrainBites:lastGoalClaimedDate');
+      const lastActivityDate = lastGoalClaimedDate || lastPlayedDate;
+      
       if (hasClaimedToday || hasPlayedQuiz) {
         let newStreak = 1;
         
-        if (lastPlayedDate) {
-          const lastDate = new Date(lastPlayedDate);
+        if (lastActivityDate) {
+          const lastDate = new Date(lastActivityDate);
           const todayDate = new Date(today);
           const diffTime = Math.abs(todayDate.getTime() - lastDate.getTime());
           const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
           
           if (diffDays === 0) {
-            newStreak = dailyStreak;
+            // Same day - keep current streak
+            newStreak = dailyStreak || 1;
           } else if (diffDays === 1) {
-            newStreak = dailyStreak + 1;
+            // Consecutive day - increment streak
+            newStreak = (dailyStreak || 0) + 1;
           }
+          // If diffDays > 1, streak resets to 1
         }
         
         await AsyncStorage.setItem('@BrainBites:dailyStreak', newStreak.toString());
-        await AsyncStorage.setItem('@BrainBites:lastPlayedDate', today);
+        await AsyncStorage.setItem('@BrainBites:lastStreakUpdateDate', today);
         
         setDailyStreak(newStreak);
-        setLastPlayedDate(today);
         
-        console.log(`🔥 Daily streak updated: ${newStreak} days`);
+        console.log(`🔥 Daily streak updated: ${newStreak} days (hasClaimedToday: ${hasClaimedToday}, hasPlayedQuiz: ${hasPlayedQuiz})`);
       }
     } catch (error) {
       console.error('Error updating daily streak:', error);
     }
   };
+
+  // Add this helper function
+  const updateDailyStreakFromGoal = async () => {
+    await updateDailyStreak();
+  };
   
   const loadDailyStreak = async () => {
     try {
-      const lastDate = await AsyncStorage.getItem('@BrainBites:lastPlayedDate');
-      const streak = await AsyncStorage.getItem('@BrainBites:dailyStreak');
+      const savedStreak = await AsyncStorage.getItem('@BrainBites:dailyStreak');
+      const lastStreakUpdate = await AsyncStorage.getItem('@BrainBites:lastStreakUpdateDate');
       
       const today = new Date().toDateString();
-      const currentStreak = parseInt(streak || '0', 10);
+      const currentStreak = parseInt(savedStreak || '0', 10);
       
-      if (lastDate === today) {
-        return { streak: currentStreak, lastDate };
-      } else if (lastDate) {
-        const last = new Date(lastDate);
-        const diff = Math.floor((new Date().getTime() - last.getTime()) / (1000 * 60 * 60 * 24));
-        
-        if (diff === 1) {
-          // Consecutive day
-          return { streak: currentStreak, lastDate };
-        } else {
-          // Streak broken
-          return { streak: 0, lastDate: null };
-        }
+      if (!lastStreakUpdate) {
+        return { streak: 0, lastDate: null };
       }
       
-      return { streak: 0, lastDate: null };
+      const lastDate = new Date(lastStreakUpdate);
+      const todayDate = new Date(today);
+      const diffTime = Math.abs(todayDate.getTime() - lastDate.getTime());
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (diffDays === 0) {
+        // Same day - keep streak
+        return { streak: currentStreak, lastDate: lastStreakUpdate };
+      } else if (diffDays === 1) {
+        // Yesterday - streak continues if they complete something today
+        return { streak: currentStreak, lastDate: lastStreakUpdate };
+      } else {
+        // More than 1 day - streak broken
+        return { streak: 0, lastDate: null };
+      }
     } catch (error) {
       console.error('Error loading daily streak:', error);
       return { streak: 0, lastDate: null };
@@ -320,9 +373,27 @@ const HomeScreen: React.FC = () => {
     const mondayFirst = [(today + 6) % 7]; // Convert to Monday-first
     
     // Check if any daily goal has been completed (claimed) today
-    const hasCompletedAnyGoalToday = dailyGoals.some(goal => goal.claimed);
-    const todayString = new Date().toDateString();
-    const hasPlayedToday = lastPlayedDate === todayString || hasCompletedAnyGoalToday;
+    const checkTodayCompletion = async () => {
+      const todayString = new Date().toDateString();
+      
+      // Check claimed goals
+      const goalsData = await AsyncStorage.getItem('@BrainBites:liveGameStore:claimedRewards');
+      const claimedRewards = goalsData ? JSON.parse(goalsData) : {};
+      const hasClaimedToday = Object.values(claimedRewards).some((date: any) => 
+        new Date(date).toDateString() === todayString
+      );
+      
+      // Check quiz play
+      const hasPlayedToday = lastPlayedDate === todayString;
+      
+      return hasClaimedToday || hasPlayedToday;
+    };
+    
+    const [hasCompletedToday, setHasCompletedToday] = useState(false);
+    
+    useEffect(() => {
+      checkTodayCompletion().then(setHasCompletedToday);
+    }, [dailyGoals, lastPlayedDate]);
     
     return (
       <View style={styles.streakContainer}>
@@ -334,8 +405,8 @@ const HomeScreen: React.FC = () => {
         <View style={styles.streakDays}>
           {days.map((day, index) => {
             const isToday = index === mondayFirst[0];
-            const isCompleted = hasPlayedToday && isToday;
-            const isPast = index < mondayFirst[0];
+            const isCompleted = hasCompletedToday && isToday;
+            const isPast = index < mondayFirst[0] && dailyStreak > (mondayFirst[0] - index);
             
             return (
               <View key={index} style={styles.streakDayContainer}>
@@ -344,7 +415,7 @@ const HomeScreen: React.FC = () => {
                   styles.streakDay,
                   isCompleted && styles.streakDayCompleted,
                   isToday && styles.streakDayToday,
-                  isPast && dailyStreak > 0 && styles.streakDayPast
+                  isPast && styles.streakDayPast
                 ]}>
                   {isCompleted && <Icon name="check" size={16} color="white" />}
                 </View>
@@ -352,7 +423,7 @@ const HomeScreen: React.FC = () => {
             );
           })}
         </View>
-        {hasCompletedAnyGoalToday && (
+        {hasCompletedToday && (
           <Text style={styles.streakMessage}>🎉 You did it today!</Text>
         )}
       </View>

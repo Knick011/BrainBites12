@@ -250,7 +250,7 @@ const DailyGoalsScreen: React.FC = () => {
           </Text>
         </View>
 
-        {goal.completed && (
+        {goal.completed && !goal.claimed && (
           <Animated.View
             style={{
               opacity: claimButtonAnims[index] || 1,
@@ -265,7 +265,20 @@ const DailyGoalsScreen: React.FC = () => {
                 goal.claimed && styles.claimedButton,
                 isAnimating && styles.animatingButton
               ]}
-              onPress={() => handleClaimReward(goal.id, index)}
+              onPress={() => {
+                if (goal.honorBased) {
+                  Alert.alert(
+                    'Honor-Based Goal',
+                    `Did you complete "${goal.description}"?`,
+                    [
+                      { text: 'No', style: 'cancel' },
+                      { text: 'Yes', onPress: () => handleClaimReward(goal.id, index) }
+                    ]
+                  );
+                } else {
+                  handleClaimReward(goal.id, index);
+                }
+              }}
               disabled={goal.claimed || isAnimating}
             >
               <Icon 

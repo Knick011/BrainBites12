@@ -1,12 +1,13 @@
 // src/services/DailyGoalsService.ts
 // ✅ COMPREHENSIVE DAILY GOALS SERVICE - FIXED VERSION
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { NativeEventEmitter, NativeModules } from 'react-native';
 import EnhancedScoreService from './EnhancedScoreService';
 import TimerIntegrationService from './TimerIntegrationService';
 
 export interface DailyGoal {
   id: string;
-  type: 'questions' | 'streak' | 'accuracy' | 'difficulty' | 'category' | 'perfect';
+  type: 'questions' | 'streak' | 'accuracy' | 'difficulty' | 'category' | 'perfect' | 'honor';
   target: number;
   questionsRequired?: number;
   reward: number; // in seconds
@@ -19,6 +20,7 @@ export interface DailyGoal {
   completed: boolean;
   claimed: boolean;
   questionsAnswered?: number;
+  honorBased?: boolean;
 }
 
 const DAILY_GOALS_POOL: Omit<DailyGoal, 'current' | 'progress' | 'completed' | 'claimed'>[] = [
@@ -134,6 +136,50 @@ const DAILY_GOALS_POOL: Omit<DailyGoal, 'current' | 'progress' | 'completed' | '
     description: 'Get 10 questions correct in a row',
     icon: 'star-circle',
     color: '#FFC107'
+  },
+  {
+    id: 'walk_5000',
+    type: 'honor',
+    target: 5000,
+    reward: 1800, // 30 minutes
+    title: 'Daily Walker',
+    description: 'Walk 5000 steps (honor-based)',
+    icon: 'walk',
+    color: '#4CAF50',
+    honorBased: true
+  },
+  {
+    id: 'pushups_10',
+    type: 'honor',
+    target: 10,
+    reward: 900, // 15 minutes
+    title: 'Fitness Boost',
+    description: 'Do 10 pushups (honor-based)',
+    icon: 'arm-flex',
+    color: '#FF5722',
+    honorBased: true
+  },
+  {
+    id: 'water_8',
+    type: 'honor',
+    target: 8,
+    reward: 600, // 10 minutes
+    title: 'Stay Hydrated',
+    description: 'Drink 8 glasses of water (honor-based)',
+    icon: 'cup-water',
+    color: '#2196F3',
+    honorBased: true
+  },
+  {
+    id: 'meditation_10',
+    type: 'honor',
+    target: 10,
+    reward: 1200, // 20 minutes
+    title: 'Mindful Moment',
+    description: 'Meditate for 10 minutes (honor-based)',
+    icon: 'meditation',
+    color: '#9C27B0',
+    honorBased: true
   }
 ];
 
@@ -316,18 +362,48 @@ class DailyGoalsService {
 
     try {
       // Add time to timer using updated integration service
-      // Convert reward from seconds to minutes
       const timeInMinutes = Math.floor(goal.reward / 60);
       console.log(`🎯 [DailyGoals] Claiming reward: ${timeInMinutes} minutes for ${goal.title}`);
       
-      // Initialize timer integration if needed
       await TimerIntegrationService.initialize();
-      
       const success = await TimerIntegrationService.addTimeFromGoal(timeInMinutes);
       
       if (success) {
         goal.claimed = true;
         await this.saveGoals();
+        
+        // Update daily streak tracking
+        const today = new Date().toDateString();
+        await AsyncStorage.setItem('@BrainBites:lastGoalClaimedDate', today);
+        
+        // Store claimed rewards with dates
+        const claimedRewardsData = await AsyncStorage.getItem('@BrainBites:liveGameStore:claimedRewards') || '{}';
+        const claimedRewards = JSON.parse(claimedRewardsData);
+        claimedRewards[goalId] = today;
+        await AsyncStorage.setItem('@BrainBites:liveGameStore:claimedRewards', JSON.stringify(claimedRewards));
+        
+        // Emit event for streak update
+        const eventEmitter = new NativeEventEmitter(NativeModules.DeviceEventEmitter || {});
+        eventEmitter.emit('dailyGoalClaimed', { 
+          goalId, 
+          goalTitle: goal.title,
+          reward: goal.reward,
+          date: today
+        });
+        
+        // Show mascot celebration
+        const showMascotCelebration = () => {
+          // Send event to show mascot
+          const eventEmitter = new (require('react-native').NativeEventEmitter)();
+          eventEmitter.emit('showGoalCompletedMascot', {
+            goalTitle: goal.title,
+            reward: goal.reward
+          });
+        };
+
+        // Call the celebration
+        showMascotCelebration();
+        
         this.notifyListeners();
         
         console.log(`✅ [DailyGoals] Successfully claimed ${timeInMinutes}m for ${goal.title}`);
