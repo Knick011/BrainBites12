@@ -29,6 +29,15 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
 }) => {
   const scaleAnim = React.useRef(new Animated.Value(1)).current;
   const rotateAnim = React.useRef(new Animated.Value(0)).current;
+  const animations = React.useRef<Animated.CompositeAnimation[]>([]);
+
+  // Cleanup animations on unmount
+  React.useEffect(() => {
+    return () => {
+      animations.current.forEach(anim => anim.stop());
+      animations.current = [];
+    };
+  }, []);
 
   const handlePressIn = () => {
     Animated.parallel([

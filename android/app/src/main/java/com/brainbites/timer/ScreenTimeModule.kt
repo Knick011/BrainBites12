@@ -40,31 +40,41 @@ class ScreenTimeModule(reactContext: ReactApplicationContext) : ReactContextBase
         
         timerReceiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
-                intent?.let {
-                    val remainingTime = it.getIntExtra("remaining_time", 0)
-                    val todayScreenTime = it.getIntExtra("today_screen_time", 0)
-                    val isAppForeground = it.getBooleanExtra("is_app_foreground", false)
-                    val isTracking = it.getBooleanExtra("is_tracking", false)
-                    
-                    sendEvent("timerUpdate", Arguments.createMap().apply {
-                        putInt("remainingTime", remainingTime)
-                        putInt("todayScreenTime", todayScreenTime)
-                        putBoolean("isAppForeground", isAppForeground)
-                        putBoolean("isTracking", isTracking)
-                    })
+                try {
+                    intent?.let {
+                        val remainingTime = it.getIntExtra("remaining_time", 0)
+                        val todayScreenTime = it.getIntExtra("today_screen_time", 0)
+                        val overtime = it.getIntExtra("overtime", 0)
+                        val isAppForeground = it.getBooleanExtra("is_app_foreground", false)
+                        val isTracking = it.getBooleanExtra("is_tracking", false)
+                        
+                        sendEvent("timerUpdate", Arguments.createMap().apply {
+                            putInt("remainingTime", remainingTime)
+                            putInt("todayScreenTime", todayScreenTime)
+                            putInt("overtime", overtime)
+                            putBoolean("isAppForeground", isAppForeground)
+                            putBoolean("isTracking", isTracking)
+                        })
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "❌ Error in broadcast receiver", e)
                 }
             }
         }
         
-        val filter = IntentFilter("brainbites_timer_update")
-        ContextCompat.registerReceiver(
-            reactApplicationContext, 
-            timerReceiver, 
-            filter, 
-            ContextCompat.RECEIVER_NOT_EXPORTED
-        )
-        
-        Log.d(TAG, "✅ Broadcast listener started")
+        try {
+            val filter = IntentFilter("com.brainbites.TIMER_UPDATE")
+            ContextCompat.registerReceiver(
+                reactApplicationContext, 
+                timerReceiver, 
+                filter, 
+                ContextCompat.RECEIVER_NOT_EXPORTED
+            )
+            
+            Log.d(TAG, "✅ Broadcast listener started")
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Failed to register broadcast receiver", e)
+        }
     }
 
     private fun createTimerStateMap(state: TimerStatus): WritableMap {
@@ -80,9 +90,13 @@ class ScreenTimeModule(reactContext: ReactApplicationContext) : ReactContextBase
     }
 
     private fun sendEvent(eventName: String, params: WritableMap) {
-        reactApplicationContext
-            .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-            .emit(eventName, params)
+        try {
+            reactApplicationContext
+                .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+                .emit(eventName, params)
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Failed to send event: $eventName", e)
+        }
     }
 
     @ReactMethod

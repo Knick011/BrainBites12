@@ -82,12 +82,21 @@ export const LiveScoreDisplay: React.FC<LiveScoreDisplayProps> = ({
   const streakGlowAnim = useRef(new Animated.Value(0)).current;
   const scoreScaleAnim = useRef(new Animated.Value(1)).current;
   const streakScaleAnim = useRef(new Animated.Value(1)).current;
+  const activeAnimations = useRef<Animated.CompositeAnimation[]>([]);
+
+  // Cleanup animations on unmount
+  useEffect(() => {
+    return () => {
+      activeAnimations.current.forEach(anim => anim.stop());
+      activeAnimations.current = [];
+    };
+  }, []);
   
   // Score animation effects
   useEffect(() => {
     if (animatingScore) {
       // Glow effect
-      Animated.sequence([
+      const glowAnimation = Animated.sequence([
         Animated.timing(scoreGlowAnim, {
           toValue: 1,
           duration: 300,
@@ -98,10 +107,10 @@ export const LiveScoreDisplay: React.FC<LiveScoreDisplayProps> = ({
           duration: 700,
           useNativeDriver: false,
         })
-      ]).start();
+      ]);
       
       // Scale effect
-      Animated.sequence([
+      const scaleAnimation = Animated.sequence([
         Animated.timing(scoreScaleAnim, {
           toValue: 1.1,
           duration: 150,
@@ -112,7 +121,12 @@ export const LiveScoreDisplay: React.FC<LiveScoreDisplayProps> = ({
           duration: 150,
           useNativeDriver: true,
         })
-      ]).start();
+      ]);
+
+      // Track and start animations
+      activeAnimations.current.push(glowAnimation, scaleAnimation);
+      glowAnimation.start();
+      scaleAnimation.start();
     }
   }, [animatingScore, scoreGlowAnim, scoreScaleAnim]);
   
@@ -120,7 +134,7 @@ export const LiveScoreDisplay: React.FC<LiveScoreDisplayProps> = ({
   useEffect(() => {
     if (animatingStreak) {
       // Glow effect
-      Animated.sequence([
+      const glowAnimation = Animated.sequence([
         Animated.timing(streakGlowAnim, {
           toValue: 1,
           duration: 400,
@@ -131,10 +145,10 @@ export const LiveScoreDisplay: React.FC<LiveScoreDisplayProps> = ({
           duration: 1100,
           useNativeDriver: false,
         })
-      ]).start();
+      ]);
       
       // Scale effect
-      Animated.sequence([
+      const scaleAnimation = Animated.sequence([
         Animated.timing(streakScaleAnim, {
           toValue: 1.2,
           duration: 200,
@@ -145,7 +159,12 @@ export const LiveScoreDisplay: React.FC<LiveScoreDisplayProps> = ({
           duration: 200,
           useNativeDriver: true,
         })
-      ]).start();
+      ]);
+
+      // Track and start animations
+      activeAnimations.current.push(glowAnimation, scaleAnimation);
+      glowAnimation.start();
+      scaleAnimation.start();
     }
   }, [animatingStreak, streakGlowAnim, streakScaleAnim]);
   
@@ -259,21 +278,33 @@ export const LiveGoalProgress: React.FC<LiveGoalProgressProps> = ({
   const glowAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const shakeAnim = useRef(new Animated.Value(0)).current;
+  const activeAnimations = useRef<Animated.CompositeAnimation[]>([]);
+
+  // Cleanup animations on unmount
+  useEffect(() => {
+    return () => {
+      activeAnimations.current.forEach(anim => anim.stop());
+      activeAnimations.current = [];
+    };
+  }, []);
   
   // Progress bar animation
   useEffect(() => {
-    Animated.timing(progressAnim, {
+    const progressAnimation = Animated.timing(progressAnim, {
       toValue: progress,
       duration: 800,
       useNativeDriver: false,
-    }).start();
+    });
+    
+    activeAnimations.current.push(progressAnimation);
+    progressAnimation.start();
   }, [progress, progressAnim]);
   
   // Completion animation
   useEffect(() => {
     if (isAnimating && completed && !claimed) {
       // Glow effect
-      Animated.loop(
+      const glowAnimation = Animated.loop(
         Animated.sequence([
           Animated.timing(glowAnim, {
             toValue: 1,
@@ -287,10 +318,10 @@ export const LiveGoalProgress: React.FC<LiveGoalProgressProps> = ({
           })
         ]),
         { iterations: 3 }
-      ).start();
+      );
       
       // Scale effect
-      Animated.sequence([
+      const scaleAnimation = Animated.sequence([
         Animated.timing(scaleAnim, {
           toValue: 1.05,
           duration: 300,
@@ -301,10 +332,10 @@ export const LiveGoalProgress: React.FC<LiveGoalProgressProps> = ({
           duration: 300,
           useNativeDriver: true,
         })
-      ]).start();
+      ]);
       
       // Shake effect for claim button
-      Animated.loop(
+      const shakeAnimation = Animated.loop(
         Animated.sequence([
           Animated.timing(shakeAnim, {
             toValue: 10,
@@ -323,7 +354,13 @@ export const LiveGoalProgress: React.FC<LiveGoalProgressProps> = ({
           })
         ]),
         { iterations: 2 }
-      ).start();
+      );
+
+      // Track and start animations
+      activeAnimations.current.push(glowAnimation, scaleAnimation, shakeAnimation);
+      glowAnimation.start();
+      scaleAnimation.start();
+      shakeAnimation.start();
     }
   }, [isAnimating, completed, claimed, glowAnim, scaleAnim, shakeAnim]);
   

@@ -1,4 +1,5 @@
 // src/services/EnhancedScoreService.ts - TypeScript version with daily goals tracking
+import { NativeModules } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DailyGoalsService from './DailyGoalsService';
 import { UserStats } from '../types';
@@ -12,6 +13,7 @@ interface ScoreInfo {
   correctAnswers: number;
   accuracy: number;
   questionsToday: number;
+  carryoverScore?: number; // Added for daily carryover
 }
 
 interface ScoreResult {
@@ -67,7 +69,8 @@ class EnhancedScoreService {
     TOTAL_QUESTIONS: '@BrainBites:totalQuestions',
     CORRECT_ANSWERS: '@BrainBites:correctAnswers',
     DAILY_STATS: '@BrainBites:dailyStats',
-    LAST_RESET: '@BrainBites:lastReset'
+    LAST_RESET: '@BrainBites:lastReset',
+    CARRYOVER_APPLIED: '@BrainBites:carryoverApplied'
   };
 
   async loadSavedData(): Promise<void> {
@@ -113,6 +116,9 @@ class EnhancedScoreService {
     const lastReset = await AsyncStorage.getItem(this.STORAGE_KEYS.LAST_RESET);
     
     if (lastReset !== today) {
+      // Check for carryover from native module
+      await this.checkAndApplyCarryover();
+      
       // Reset daily data
       this.dailyScore = 0;
       this.todayStats = {
@@ -125,7 +131,46 @@ class EnhancedScoreService {
       };
       
       await AsyncStorage.setItem(this.STORAGE_KEYS.LAST_RESET, today);
+      await AsyncStorage.setItem(this.STORAGE_KEYS.CARRYOVER_APPLIED, 'false');
       await this.saveData();
+    }
+  }
+
+  private async checkAndApplyCarryover(): Promise<void> {
+    try {
+      const today = new Date().toDateString();
+      const carryoverApplied = await AsyncStorage.getItem(this.STORAGE_KEYS.CARRYOVER_APPLIED);
+      
+      if (carryoverApplied === 'true') {
+        return; // Already applied for today
+      }
+
+      // Get carryover score from native module
+      if (NativeModules.DailyScoreCarryover) {
+        const carryoverScore = await NativeModules.DailyScoreCarryover.getTodayStartScore();
+        
+        if (carryoverScore !== 0) {
+          console.log(`🎯 Applying carryover score: ${carryoverScore > 0 ? '+' : ''}${carryoverScore}`);
+          
+          // Apply carryover to daily score
+          this.dailyScore = Math.max(0, carryoverScore); // Don't go below 0
+          
+          // Mark as applied
+          await AsyncStorage.setItem(this.STORAGE_KEYS.CARRYOVER_APPLIED, 'true');
+          await this.saveData();
+          
+          // Notify user about carryover
+          if (NativeModules.ToastModule) {
+            const message = carryoverScore > 0 
+              ? `🎉 Bonus! +${carryoverScore} points from yesterday's saved time!`
+              : `⚠️ Starting with ${Math.abs(carryoverScore)} point penalty from yesterday's overtime`;
+            
+            NativeModules.ToastModule.show(message, NativeModules.ToastModule.LONG);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to apply carryover score:', error);
     }
   }
 
@@ -354,6 +399,18 @@ class EnhancedScoreService {
       date: this.todayStats.date,
       accuracy: this.todayStats.accuracy
     };
+  }
+
+  async getCarryoverInfo(): Promise<any> {
+    try {
+      if (NativeModules.DailyScoreCarryover) {
+        return await NativeModules.DailyScoreCarryover.getCarryoverInfo();
+      }
+      return null;
+    } catch (error) {
+      console.error('Failed to get carryover info:', error);
+      return null;
+    }
   }
 
   async resetAllData(): Promise<void> {

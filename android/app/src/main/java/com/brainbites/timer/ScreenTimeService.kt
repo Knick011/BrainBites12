@@ -4,6 +4,7 @@ import android.app.*
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
@@ -31,6 +32,7 @@ class ScreenTimeService : Service() {
     
     private var remainingTimeSeconds = 0
     private var todayScreenTimeSeconds = 0
+    private var overtimeSeconds = 0 // Track overtime
     private var sessionStartTime = 0L
     private var isAppInForeground = false
     private var lastTickTime = 0L
@@ -43,6 +45,7 @@ class ScreenTimeService : Service() {
         private const val PREFS_NAME = "BrainBitesTimerPrefs"
         private const val KEY_REMAINING_TIME = "remaining_time"
         private const val KEY_TODAY_SCREEN_TIME = "today_screen_time"
+        private const val KEY_OVERTIME = "overtime_seconds"
         private const val KEY_LAST_SAVE_DATE = "last_save_date"
         private const val UPDATE_INTERVAL = 1000L // 1 second for smooth updates
         
@@ -78,11 +81,18 @@ class ScreenTimeService : Service() {
         loadSavedData()
         acquireWakeLock()
         
-        Log.d(TAG, "✅ Service initialized with ${remainingTimeSeconds}s remaining, ${todayScreenTimeSeconds}s used today")
+        Log.d(TAG, "✅ Service initialized with ${remainingTimeSeconds}s remaining, ${todayScreenTimeSeconds}s used today, ${overtimeSeconds}s overtime")
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d(TAG, "✅ onStartCommand: ${intent?.action}")
+        
+        // Start as foreground service immediately to avoid Android killing it
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(NOTIFICATION_ID, createPersistentNotification(), ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
+        } else {
+            startForeground(NOTIFICATION_ID, createPersistentNotification())
+        }
         
         when (intent?.action) {
             ACTION_START -> startTimer()
@@ -100,10 +110,8 @@ class ScreenTimeService : Service() {
             ACTION_APP_FOREGROUND -> handleAppForeground()
             ACTION_APP_BACKGROUND -> handleAppBackground()
             else -> {
-                // Default - start if we have time
-                if (remainingTimeSeconds > 0) {
-                    startTimer()
-                }
+                // Default - start timer regardless of remaining time
+                startTimer()
             }
         }
         
@@ -134,16 +142,14 @@ class ScreenTimeService : Service() {
         }
         notificationManagerCompat.createNotificationChannel(channel)
     }
-
+    
     private fun acquireWakeLock() {
         try {
-            wakeLock?.release() // Release existing first
             wakeLock = powerManager.newWakeLock(
                 PowerManager.PARTIAL_WAKE_LOCK,
-                "$TAG::TimerWakeLock"
+                "BrainBites::ScreenTimeWakeLock"
             ).apply {
-                setReferenceCounted(false)
-                acquire(10*60*1000L) // 10 minutes timeout for safety
+                acquire(24 * 60 * 60 * 1000L) // 24 hours max
             }
             Log.d(TAG, "✅ Wake lock acquired")
         } catch (e: Exception) {
@@ -153,157 +159,198 @@ class ScreenTimeService : Service() {
     
     private fun releaseWakeLock() {
         try {
-            wakeLock?.let {
-                if (it.isHeld) {
-                    it.release()
-                    Log.d(TAG, "✅ Wake lock released")
-                }
+            if (wakeLock?.isHeld == true) {
+                wakeLock?.release()
+                Log.d(TAG, "✅ Wake lock released")
             }
-            wakeLock = null
         } catch (e: Exception) {
             Log.e(TAG, "❌ Failed to release wake lock", e)
         }
     }
     
+    private fun loadSavedData() {
+        val today = android.text.format.DateFormat.format("yyyy-MM-dd", java.util.Date()).toString()
+        val lastSaveDate = sharedPrefs.getString(KEY_LAST_SAVE_DATE, today)
+        
+        if (lastSaveDate != today) {
+            // New day - reset daily data but keep remaining time
+            todayScreenTimeSeconds = 0
+            overtimeSeconds = 0
+            Log.d(TAG, "📅 New day detected - resetting daily stats")
+        } else {
+            todayScreenTimeSeconds = sharedPrefs.getInt(KEY_TODAY_SCREEN_TIME, 0)
+            overtimeSeconds = sharedPrefs.getInt(KEY_OVERTIME, 0)
+        }
+        
+        remainingTimeSeconds = sharedPrefs.getInt(KEY_REMAINING_TIME, 0)
+    }
+    
+    private fun saveData() {
+        try {
+            val today = android.text.format.DateFormat.format("yyyy-MM-dd", java.util.Date()).toString()
+            sharedPrefs.edit().apply {
+                putInt(KEY_REMAINING_TIME, remainingTimeSeconds)
+                putInt(KEY_TODAY_SCREEN_TIME, todayScreenTimeSeconds)
+                putInt(KEY_OVERTIME, overtimeSeconds)
+                putString(KEY_LAST_SAVE_DATE, today)
+                apply()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Failed to save data", e)
+            // Don't let save failures crash the service
+        }
+    }
+
     private fun startTimer() {
-        if (!NotificationPermissionHandler.checkNotificationPermission(applicationContext)) {
-            Log.w(TAG, "⚠️ No notification permission - cannot start foreground service")
+        if (timerRunnable != null) {
+            Log.d(TAG, "⚠️ Timer already running")
             return
         }
         
-        Log.d(TAG, "✅ Starting persistent timer")
-        
-        // Start foreground service with persistent notification
-        startForeground(NOTIFICATION_ID, createPersistentNotification())
-        
-        // Cancel existing timer
-        timerRunnable?.let { handler.removeCallbacks(it) }
-        
-        // Initialize timing
+        Log.d(TAG, "▶️ Starting timer")
+        sessionStartTime = System.currentTimeMillis()
         lastTickTime = System.currentTimeMillis()
-        if (sessionStartTime == 0L) {
-            sessionStartTime = lastTickTime
-        }
         
-        // Start timer loop
         timerRunnable = object : Runnable {
             override fun run() {
-                tick()
+                updateTimer()
                 handler.postDelayed(this, UPDATE_INTERVAL)
             }
         }
-        handler.post(timerRunnable!!)
         
+        handler.post(timerRunnable!!)
+        updatePersistentNotification()
         broadcastUpdate()
-        Log.d(TAG, "✅ Persistent timer started successfully")
     }
     
     private fun pauseTimer() {
         Log.d(TAG, "⏸️ Pausing timer")
-        screenTimeManager?.pauseTimer()
+        stopTimerInternal()
         updatePersistentNotification()
+        broadcastUpdate()
     }
     
     private fun stopTimer() {
         Log.d(TAG, "⏹️ Stopping timer")
+        stopTimerInternal()
+        stopForeground(STOP_FOREGROUND_REMOVE)
+        broadcastUpdate()
+    }
+    
+    private fun stopTimerInternal() {
         timerRunnable?.let {
             handler.removeCallbacks(it)
             timerRunnable = null
         }
-        screenTimeManager?.stopTimer()
-        saveData()
-        stopForeground(true)
-        stopSelf()
+        sessionStartTime = 0L
     }
     
-    private fun tick() {
-        val currentTime = System.currentTimeMillis()
-        val elapsedMs = currentTime - lastTickTime
-        val elapsedSeconds = (elapsedMs / 1000).toInt()
-        lastTickTime = currentTime
-        
-        val isScreenOn = powerManager.isInteractive
-        val isLocked = keyguardManager.isKeyguardLocked
-        
-        // Timer should count down when:
-        // 1. Screen is ON and device is NOT locked
-        // 2. BrainBites app is NOT in foreground (user using other apps)
-        // 3. We have remaining time
-        val shouldDeductTime = isScreenOn && !isLocked && !isAppInForeground && remainingTimeSeconds > 0
-        
-        if (shouldDeductTime && elapsedSeconds > 0) {
-            // Deduct from remaining time
-            remainingTimeSeconds = maxOf(0, remainingTimeSeconds - elapsedSeconds)
+    private fun updateTimer() {
+        try {
+            val now = System.currentTimeMillis()
+            val deltaMs = now - lastTickTime
+            lastTickTime = now
             
-            // Add to today's screen time usage
-            todayScreenTimeSeconds += elapsedSeconds
+            // Only update if significant time has passed (avoid micro-updates)
+            if (deltaMs < 2000) return // Changed to 2 seconds to reduce frequency
             
-            // Log every 10 seconds
-            if (remainingTimeSeconds % 10 == 0) {
-                Log.d(TAG, "⏰ Timer: ${formatTime(remainingTimeSeconds)} left, ${formatTime(todayScreenTimeSeconds)} used today")
-            }
+            val deltaSec = (deltaMs / 1000).toInt()
             
-            // Check for warnings
-            when (remainingTimeSeconds) {
-                300 -> showLowTimeNotification(5) // 5 minutes
-                60 -> showLowTimeNotification(1)   // 1 minute
-                0 -> handleTimeExpired()
-            }
-        } else {
-            // Log why timer isn't counting (every 10 seconds to avoid spam)
-            if (remainingTimeSeconds % 10 == 0 && remainingTimeSeconds > 0) {
-                val reason = when {
-                    !isScreenOn -> "Screen OFF"
-                    isLocked -> "Device LOCKED"
-                    isAppInForeground -> "BrainBites FOREGROUND"
-                    remainingTimeSeconds <= 0 -> "No TIME remaining"
-                    else -> "Unknown reason"
+            // Always update screen time when screen is on and app is not in foreground
+            if (!isAppInForeground && !keyguardManager.isKeyguardLocked && powerManager.isInteractive) {
+                todayScreenTimeSeconds += deltaSec
+                
+                // Update remaining time or overtime
+                if (remainingTimeSeconds > 0) {
+                    val newRemaining = remainingTimeSeconds - deltaSec
+                    if (newRemaining <= 0) {
+                        overtimeSeconds += Math.abs(newRemaining)
+                        remainingTimeSeconds = 0
+                        handleTimeExpired()
+                    } else {
+                        remainingTimeSeconds = newRemaining
+                    }
+                    
+                    // Check for low time warnings
+                    when (remainingTimeSeconds) {
+                        300 -> showLowTimeNotification(5)
+                        120 -> showLowTimeNotification(2)
+                        60 -> showLowTimeNotification(1)
+                    }
+                } else {
+                    // Already in overtime, keep tracking
+                    overtimeSeconds += deltaSec
                 }
-                Log.d(TAG, "⏸️ Timer paused: $reason")
             }
+            
+            // Update notification every 2 seconds for smooth timer display
+            handler.post {
+                updatePersistentNotification()
+            }
+            
+            // Save data and broadcast every 30 seconds to reduce overhead
+            if (todayScreenTimeSeconds % 30 == 0) {
+                handler.post {
+                    saveData()
+                    broadcastUpdate()
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Error in updateTimer", e)
+            // Continue running the timer even if there's an error
         }
-        
-        // Update persistent notification every second
-        updatePersistentNotification()
-        
-        // Save data every 5 seconds
-        if ((currentTime / 1000) % 5 == 0L) {
-            saveData()
-        }
-        
-        // Broadcast state every second
-        broadcastUpdate()
     }
     
     private fun handleAppForeground() {
-        if (!isAppInForeground) {
-            isAppInForeground = true
-            Log.d(TAG, "📱 BrainBites entered FOREGROUND - timer paused")
-            screenTimeManager?.onAppForeground()
-        }
+        Log.d(TAG, "📱 App in foreground")
+        isAppInForeground = true
+        updatePersistentNotification()
+        broadcastUpdate()
     }
     
     private fun handleAppBackground() {
-        if (isAppInForeground) {
-            isAppInForeground = false
-            Log.d(TAG, "📱 BrainBites moved to BACKGROUND - timer will resume")
-            screenTimeManager?.onAppBackground()
-            
-            // Ensure timer is running if we have time
-            if (remainingTimeSeconds > 0 && timerRunnable == null) {
-                startTimer()
+        Log.d(TAG, "📱 App in background")
+        isAppInForeground = false
+        updatePersistentNotification()
+        broadcastUpdate()
+    }
+    
+    private fun addTime(seconds: Int) {
+        remainingTimeSeconds += seconds
+        // Reset overtime when time is added
+        if (remainingTimeSeconds > 0) {
+            overtimeSeconds = 0
+        }
+        saveData()
+        updatePersistentNotification()
+        broadcastUpdate()
+        Log.d(TAG, "➕ Added ${seconds}s, new remaining: ${remainingTimeSeconds}s")
+    }
+    
+    private fun broadcastUpdate() {
+        try {
+            val intent = Intent("com.brainbites.TIMER_UPDATE").apply {
+                putExtra("remaining_time", remainingTimeSeconds)
+                putExtra("today_screen_time", todayScreenTimeSeconds)
+                putExtra("overtime", overtimeSeconds)
+                putExtra("is_app_foreground", isAppInForeground)
+                putExtra("is_tracking", timerRunnable != null)
             }
+            sendBroadcast(intent)
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Failed to broadcast update", e)
+            // Don't let broadcast failures crash the service
         }
     }
     
     private fun handleTimeExpired() {
-        Log.d(TAG, "⏰ TIME EXPIRED!")
+        Log.d(TAG, "⏰ Time expired! Entering overtime mode")
         
         // Show high priority notification
         showTimeExpiredNotification()
         broadcastUpdate()
         
-        // Update persistent notification to show "No time remaining"
+        // Keep persistent notification showing overtime
         updatePersistentNotification()
     }
     
@@ -361,33 +408,50 @@ class ScreenTimeService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         
-        val timeText = if (remainingTimeSeconds > 0) {
-            formatTime(remainingTimeSeconds)
+        // Format times in HH:MM:SS
+        val timeLeftText = if (remainingTimeSeconds > 0) {
+            formatTimeWithSeconds(remainingTimeSeconds)
         } else {
-            "No time remaining"
+            "00:00:00"
         }
         
-        val usedTimeText = formatTime(todayScreenTimeSeconds)
+        val screenTimeText = formatTimeWithSeconds(todayScreenTimeSeconds)
+        val overtimeText = if (overtimeSeconds > 0) {
+            formatTimeWithSeconds(overtimeSeconds)
+        } else {
+            "00:00:00"
+        }
         
         val statusText = when {
+            remainingTimeSeconds <= 0 && overtimeSeconds > 0 -> "⚠️ OVERTIME MODE"
             remainingTimeSeconds <= 0 -> "Complete quizzes to earn time!"
-            isAppInForeground -> "BrainBites Open (Paused)"
-            !powerManager.isInteractive -> "Screen Off (Paused)"
-            keyguardManager.isKeyguardLocked -> "Device Locked (Paused)"
-            else -> "Timer Running"
+            isAppInForeground -> "⏸️ PAUSED (App Open)"
+            !powerManager.isInteractive -> "⏸️ PAUSED (Screen Off)"
+            keyguardManager.isKeyguardLocked -> "⏸️ PAUSED (Locked)"
+            else -> "▶️ TIMER RUNNING"
         }
         
+        val notificationColor = if (remainingTimeSeconds <= 0 && overtimeSeconds > 0) {
+            0xFFF44336.toInt() // Red for overtime
+        } else {
+            0xFFFF9F1C.toInt() // Orange for normal
+        }
+        
+        val bigText = "⏰ Time Left: $timeLeftText\n" +
+                     "📱 Screen Time: $screenTimeText\n" +
+                     "⚠️ Overtime: $overtimeText\n" +
+                     "$statusText"
+        
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_menu_recent_history)
-            .setContentTitle("Time left: $timeText")
-            .setContentText("$statusText • Screen time today: $usedTimeText")
+            .setSmallIcon(if (overtimeSeconds > 0) R.drawable.ic_notification else android.R.drawable.ic_menu_recent_history)
+            .setContentTitle("⏰ $timeLeftText")
+            .setContentText("📱 $screenTimeText • ⚠️ $overtimeText")
             .setContentIntent(pendingIntent)
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setSilent(true)
-            .setColor(0xFFFF9F1C.toInt())
-            .setStyle(NotificationCompat.BigTextStyle()
-                .bigText("Screen time today: $usedTimeText"))
+            .setColor(notificationColor)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(bigText))
             .build()
     }
     
@@ -397,80 +461,48 @@ class ScreenTimeService : Service() {
             notificationManagerCompat.notify(NOTIFICATION_ID, notification)
         } catch (e: Exception) {
             Log.e(TAG, "❌ Failed to update persistent notification", e)
+            // Try to create a simple fallback notification
+            try {
+                val fallbackNotification = NotificationCompat.Builder(this, CHANNEL_ID)
+                    .setSmallIcon(android.R.drawable.ic_menu_recent_history)
+                    .setContentTitle("BrainBites Timer")
+                    .setContentText("Timer is running")
+                    .setOngoing(true)
+                    .setPriority(NotificationCompat.PRIORITY_LOW)
+                    .setSilent(true)
+                    .build()
+                notificationManagerCompat.notify(NOTIFICATION_ID, fallbackNotification)
+            } catch (fallbackException: Exception) {
+                Log.e(TAG, "❌ Failed to create fallback notification", fallbackException)
+            }
         }
     }
     
     private fun updateRemainingTime(newTime: Int) {
         remainingTimeSeconds = newTime
+        // Reset overtime when new time is set
+        if (remainingTimeSeconds > 0) {
+            overtimeSeconds = 0
+        }
         saveData()
-        Log.d(TAG, "✅ Updated remaining time to ${formatTime(newTime)}")
-    }
-    
-    private fun addTime(seconds: Int) {
-        val oldTime = remainingTimeSeconds
-        remainingTimeSeconds += seconds
-        saveData()
-        
-        Log.d(TAG, "✅ Added ${formatTime(seconds)}, total: ${formatTime(remainingTimeSeconds)}")
-        
-        // Start timer if it wasn't running
-        if (timerRunnable == null && remainingTimeSeconds > 0) {
-            startTimer()
-        }
-        
-        // Update immediately
-        updatePersistentNotification()
-        broadcastUpdate()
-        
-        // Notify ScreenTimeManager
-        screenTimeManager?.addTimeFromQuiz(seconds / 60) // Convert to minutes
-    }
-    
-    private fun loadSavedData() {
-        val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date())
-        val lastSaveDate = sharedPrefs.getString(KEY_LAST_SAVE_DATE, "")
-        
-        remainingTimeSeconds = sharedPrefs.getInt(KEY_REMAINING_TIME, 0)
-        
-        // Reset daily screen time if it's a new day
-        if (today != lastSaveDate) {
-            todayScreenTimeSeconds = 0
-            Log.d(TAG, "📅 New day detected - reset daily screen time")
-        } else {
-            todayScreenTimeSeconds = sharedPrefs.getInt(KEY_TODAY_SCREEN_TIME, 0)
-        }
-        
-        Log.d(TAG, "💾 Loaded: ${formatTime(remainingTimeSeconds)} remaining, ${formatTime(todayScreenTimeSeconds)} used today")
-    }
-    
-    private fun saveData() {
-        val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date())
-        
-        sharedPrefs.edit()
-            .putInt(KEY_REMAINING_TIME, remainingTimeSeconds)
-            .putInt(KEY_TODAY_SCREEN_TIME, todayScreenTimeSeconds)
-            .putString(KEY_LAST_SAVE_DATE, today)
-            .apply()
-    }
-    
-    private fun broadcastUpdate() {
-        val intent = Intent("brainbites_timer_update").apply {
-            putExtra("remaining_time", remainingTimeSeconds)
-            putExtra("today_screen_time", todayScreenTimeSeconds)
-            putExtra("is_app_foreground", isAppInForeground)
-            putExtra("is_tracking", !isAppInForeground && powerManager.isInteractive && !keyguardManager.isKeyguardLocked)
-        }
-        sendBroadcast(intent)
+        Log.d(TAG, "✅ Updated remaining time to ${remainingTimeSeconds}s")
     }
     
     private fun formatTime(seconds: Int): String {
         val hours = seconds / 3600
         val minutes = (seconds % 3600) / 60
-        val secs = seconds % 60
         
         return when {
-            hours > 0 -> String.format("%d:%02d:%02d", hours, minutes, secs)
-            else -> String.format("%d:%02d", minutes, secs)
+            hours > 0 -> "${hours}h ${minutes}m"
+            else -> "${minutes}m"
         }
+    }
+    
+    private fun formatTimeWithSeconds(seconds: Int): String {
+        val hours = seconds / 3600
+        val minutes = (seconds % 3600) / 60
+        val secs = seconds % 60
+        
+        return String.format("%02d:%02d:%02d", hours, minutes, secs)
     }
 }

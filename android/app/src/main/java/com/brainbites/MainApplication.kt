@@ -18,6 +18,7 @@ import com.facebook.soloader.SoLoader
 import com.brainbites.timer.ScreenTimePackage
 import com.brainbites.timer.ScreenTimeReceiver
 import com.brainbites.timer.ScreenTimeService
+import com.brainbites.timer.DailyScoreCarryoverPackage
 
 class MainApplication : Application(), ReactApplication {
 
@@ -30,6 +31,8 @@ class MainApplication : Application(), ReactApplication {
             PackageList(this).packages.apply {
               // Add the timer package
               add(ScreenTimePackage())
+              // Add the score carryover package
+              add(DailyScoreCarryoverPackage())
             }
 
         override fun getJSMainModuleName(): String = "index"

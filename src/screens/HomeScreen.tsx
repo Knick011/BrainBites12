@@ -26,6 +26,7 @@ import EnhancedMascotDisplay from '../components/Mascot/EnhancedMascotDisplay';
 import ScoreDisplay from '../components/common/ScoreDisplay';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { TimerWidget } from '../components/Timer/TimerWidget';
+import { CarryoverInfoCard } from '../components/CarryoverInfoCard';
 
 // ✅ LIVE STATE INTEGRATION
 import { useHomeIntegration } from '../hooks/useGameIntegration';
@@ -462,6 +463,11 @@ const HomeScreen: React.FC = () => {
         {/* Timer Widget */}
         <Animated.View style={[{ opacity: fadeAnim, transform: [{ scale: scaleAnim }] }]}>
           <TimerWidget onEarnMorePress={handleDifficultyPress.bind(null, 'easy')} />
+        </Animated.View>
+        
+        {/* Carryover Info Card */}
+        <Animated.View style={[{ opacity: fadeAnim, transform: [{ scale: scaleAnim }] }]}>
+          <CarryoverInfoCard />
         </Animated.View>
         
         {/* Streak Flow */}
