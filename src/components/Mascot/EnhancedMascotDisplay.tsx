@@ -89,6 +89,16 @@ const EnhancedMascotDisplay: React.FC<EnhancedMascotDisplayProps> = ({
     console.log('🐾 [Modern EnhancedMascotDisplay] Message changed:', message ? 'has message' : 'no message');
     handleNewMessage(message);
   }, [message]);
+
+  // Handle showMascot prop changes
+  useEffect(() => {
+    console.log('🐾 [Modern EnhancedMascotDisplay] showMascot changed:', showMascot);
+    if (showMascot && message) {
+      handleNewMessage(message);
+    } else if (!showMascot) {
+      hideMascot();
+    }
+  }, [showMascot]);
   
   // Cleanup on unmount
   useEffect(() => {
