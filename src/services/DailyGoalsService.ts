@@ -426,9 +426,8 @@ class DailyGoalsService {
         goal.claimed = true;
         await this.saveGoals();
         
-        // Update daily streak tracking
+        // Get today's date
         const today = new Date().toDateString();
-        await AsyncStorage.setItem('@BrainBites:lastGoalClaimedDate', today);
         
         // Store claimed rewards with dates
         const claimedRewardsData = await AsyncStorage.getItem('@BrainBites:liveGameStore:claimedRewards') || '{}';
@@ -436,14 +435,32 @@ class DailyGoalsService {
         claimedRewards[goalId] = today;
         await AsyncStorage.setItem('@BrainBites:liveGameStore:claimedRewards', JSON.stringify(claimedRewards));
         
-        // Emit event for streak update
-        const eventEmitter = new NativeEventEmitter(NativeModules.DeviceEventEmitter || {});
-        eventEmitter.emit('dailyGoalClaimed', { 
-          goalId, 
-          goalTitle: goal.title,
-          reward: goal.reward,
-          date: today
-        });
+        // Update daily streak tracking (only for non-honor goals)
+        if (!goal.honorBased) {
+          await AsyncStorage.setItem('@BrainBites:lastGoalClaimedDate', today);
+        }
+        
+        // Emit event for streak update (only for non-honor goals)
+        if (!goal.honorBased) {
+          const eventEmitter = new NativeEventEmitter(NativeModules.DeviceEventEmitter || {});
+          eventEmitter.emit('dailyGoalClaimed', { 
+            goalId, 
+            goalTitle: goal.title,
+            reward: goal.reward,
+            date: today,
+            isHonorGoal: false
+          });
+        } else {
+          // Emit a separate event for honor goals (no streak update)
+          const eventEmitter = new NativeEventEmitter(NativeModules.DeviceEventEmitter || {});
+          eventEmitter.emit('honorGoalClaimed', { 
+            goalId, 
+            goalTitle: goal.title,
+            reward: goal.reward,
+            date: today,
+            isHonorGoal: true
+          });
+        }
         
         // Show mascot celebration
         const showMascotCelebration = () => {

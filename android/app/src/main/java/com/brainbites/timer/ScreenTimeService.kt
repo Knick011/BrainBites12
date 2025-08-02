@@ -251,50 +251,54 @@ class ScreenTimeService : Service() {
             val deltaMs = now - lastTickTime
             lastTickTime = now
             
-            // Only update if significant time has passed (avoid micro-updates)
-            if (deltaMs < 2000) return // Changed to 2 seconds to reduce frequency
-            
-            val deltaSec = (deltaMs / 1000).toInt()
-            
-            // Always update screen time when screen is on and app is not in foreground
-            if (!isAppInForeground && !keyguardManager.isKeyguardLocked && powerManager.isInteractive) {
-                todayScreenTimeSeconds += deltaSec
+            // Only update timer logic if at least 1 second has passed (avoid micro-updates)
+            if (deltaMs >= 1000) {
+                val deltaSec = (deltaMs / 1000).toInt()
                 
-                // Update remaining time or overtime
-                if (remainingTimeSeconds > 0) {
-                    val newRemaining = remainingTimeSeconds - deltaSec
-                    if (newRemaining <= 0) {
-                        overtimeSeconds += Math.abs(newRemaining)
-                        remainingTimeSeconds = 0
-                        handleTimeExpired()
-                    } else {
-                        remainingTimeSeconds = newRemaining
-                    }
+                // Always update screen time when screen is on and app is not in foreground
+                if (!isAppInForeground && !keyguardManager.isKeyguardLocked && powerManager.isInteractive) {
+                    Log.d(TAG, "⏰ Timer updating: deltaSec=$deltaSec, remaining=${remainingTimeSeconds}s, screenTime=${todayScreenTimeSeconds}s, overtime=${overtimeSeconds}s")
+                    todayScreenTimeSeconds += deltaSec
                     
-                    // Check for low time warnings
-                    when (remainingTimeSeconds) {
-                        300 -> showLowTimeNotification(5)
-                        120 -> showLowTimeNotification(2)
-                        60 -> showLowTimeNotification(1)
+                    // Update remaining time or overtime
+                    if (remainingTimeSeconds > 0) {
+                        val newRemaining = remainingTimeSeconds - deltaSec
+                        if (newRemaining <= 0) {
+                            overtimeSeconds += Math.abs(newRemaining)
+                            remainingTimeSeconds = 0
+                            handleTimeExpired()
+                        } else {
+                            remainingTimeSeconds = newRemaining
+                        }
+                        
+                        // Check for low time warnings
+                        when (remainingTimeSeconds) {
+                            300 -> showLowTimeNotification(5)
+                            120 -> showLowTimeNotification(2)
+                            60 -> showLowTimeNotification(1)
+                        }
+                    } else {
+                        // Already in overtime, keep tracking
+                        overtimeSeconds += deltaSec
                     }
                 } else {
-                    // Already in overtime, keep tracking
-                    overtimeSeconds += deltaSec
+                    Log.d(TAG, "⏸️ Timer NOT updating - App in foreground: $isAppInForeground, Screen locked: ${keyguardManager.isKeyguardLocked}, Screen interactive: ${powerManager.isInteractive}")
+                }
+                
+                // Save data and broadcast every 30 seconds to reduce overhead
+                if (todayScreenTimeSeconds % 30 == 0) {
+                    handler.post {
+                        saveData()
+                        broadcastUpdate()
+                    }
                 }
             }
             
-            // Update notification every 2 seconds for smooth timer display
+            // Always update notification for smooth display (every 1 second)
             handler.post {
                 updatePersistentNotification()
             }
             
-            // Save data and broadcast every 30 seconds to reduce overhead
-            if (todayScreenTimeSeconds % 30 == 0) {
-                handler.post {
-                    saveData()
-                    broadcastUpdate()
-                }
-            }
         } catch (e: Exception) {
             Log.e(TAG, "❌ Error in updateTimer", e)
             // Continue running the timer even if there's an error
@@ -422,30 +426,18 @@ class ScreenTimeService : Service() {
             "00:00:00"
         }
         
-        val statusText = when {
-            remainingTimeSeconds <= 0 && overtimeSeconds > 0 -> "⚠️ OVERTIME MODE"
-            remainingTimeSeconds <= 0 -> "Complete quizzes to earn time!"
-            isAppInForeground -> "⏸️ PAUSED (App Open)"
-            !powerManager.isInteractive -> "⏸️ PAUSED (Screen Off)"
-            keyguardManager.isKeyguardLocked -> "⏸️ PAUSED (Locked)"
-            else -> "▶️ TIMER RUNNING"
-        }
-        
         val notificationColor = if (remainingTimeSeconds <= 0 && overtimeSeconds > 0) {
             0xFFF44336.toInt() // Red for overtime
         } else {
             0xFFFF9F1C.toInt() // Orange for normal
         }
         
-        val bigText = "⏰ Time Left: $timeLeftText\n" +
-                     "📱 Screen Time: $screenTimeText\n" +
-                     "⚠️ Overtime: $overtimeText\n" +
-                     "$statusText"
+        val bigText = "Screen Time: $screenTimeText\nOvertime: $overtimeText"
         
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(if (overtimeSeconds > 0) R.drawable.ic_notification else android.R.drawable.ic_menu_recent_history)
-            .setContentTitle("⏰ $timeLeftText")
-            .setContentText("📱 $screenTimeText • ⚠️ $overtimeText")
+            .setContentTitle("Time Left: $timeLeftText")
+            .setContentText("$screenTimeText • $overtimeText")
             .setContentIntent(pendingIntent)
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
@@ -465,8 +457,8 @@ class ScreenTimeService : Service() {
             try {
                 val fallbackNotification = NotificationCompat.Builder(this, CHANNEL_ID)
                     .setSmallIcon(android.R.drawable.ic_menu_recent_history)
-                    .setContentTitle("BrainBites Timer")
-                    .setContentText("Timer is running")
+                    .setContentTitle("BrainBites")
+                    .setContentText("Timer active")
                     .setOngoing(true)
                     .setPriority(NotificationCompat.PRIORITY_LOW)
                     .setSilent(true)

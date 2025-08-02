@@ -125,7 +125,7 @@ const HomeScreen: React.FC = () => {
     }, [])
   );
 
-  // Listen for daily goal claims
+  // Listen for daily goal claims (non-honor goals)
   useEffect(() => {
     const eventEmitter = new (require('react-native').NativeEventEmitter)();
     const subscription = eventEmitter.addListener('dailyGoalClaimed', async (data) => {
@@ -137,6 +137,25 @@ const HomeScreen: React.FC = () => {
       // Show celebration mascot
       setMascotType('excited');
       setMascotMessage(`🎉 Goal Completed! 🎉\n\n${data.goalTitle}\nYou earned ${Math.floor(data.reward / 60)} minutes!\n\nYour daily streak continues!`);
+      setShowMascot(true);
+      
+      setTimeout(() => {
+        setShowMascot(false);
+      }, 5000);
+    });
+    
+    return () => subscription.remove();
+  }, []);
+
+  // Listen for honor goal claims (no streak update)
+  useEffect(() => {
+    const eventEmitter = new (require('react-native').NativeEventEmitter)();
+    const subscription = eventEmitter.addListener('honorGoalClaimed', async (data) => {
+      console.log('🏆 [HomeScreen] Honor goal claimed:', data);
+      
+      // Show celebration mascot (no streak message)
+      setMascotType('excited');
+      setMascotMessage(`🏆 Honor Award! 🏆\n\n${data.goalTitle}\nYou earned ${Math.floor(data.reward / 60)} minutes!\n\nGreat job!`);
       setShowMascot(true);
       
       setTimeout(() => {
@@ -244,21 +263,49 @@ const HomeScreen: React.FC = () => {
     try {
       const today = new Date().toDateString();
       
-      // Check if any daily goal has been claimed today
+      // Check if any non-honor daily goal has been claimed today
       const goalsData = await AsyncStorage.getItem('@BrainBites:liveGameStore:claimedRewards');
       const claimedRewards = goalsData ? JSON.parse(goalsData) : {};
-      const hasClaimedToday = Object.values(claimedRewards).some((date: any) => 
-        new Date(date).toDateString() === today
-      );
+      
+      // Get current goals to check which ones are honor-based
+      const currentGoalsData = await AsyncStorage.getItem('@BrainBites:dailyGoals');
+      const currentGoals = currentGoalsData ? JSON.parse(currentGoalsData) : [];
+      
+      // Filter out honor-based goals from claimed rewards
+      const honorGoalIds = currentGoals
+        .filter((goal: any) => goal.honorBased)
+        .map((goal: any) => goal.id);
+      
+      const nonHonorClaimedToday = Object.entries(claimedRewards).some(([goalId, date]: [string, any]) => {
+        const isHonorGoal = honorGoalIds.includes(goalId);
+        const isToday = new Date(date).toDateString() === today;
+        return !isHonorGoal && isToday;
+      });
       
       // Also check if user played quiz today
       const hasPlayedQuiz = lastPlayedDate === today;
       
-      // Get the last activity date (either quiz or goal claim)
+      // Get the last activity date (either quiz or non-honor goal claim)
+      // We need to check if the lastGoalClaimedDate was from a non-honor goal
       const lastGoalClaimedDate = await AsyncStorage.getItem('@BrainBites:lastGoalClaimedDate');
-      const lastActivityDate = lastGoalClaimedDate || lastPlayedDate;
+      const lastClaimedRewardsData = await AsyncStorage.getItem('@BrainBites:liveGameStore:claimedRewards') || '{}';
+      const lastClaimedRewards = JSON.parse(lastClaimedRewardsData);
       
-      if (hasClaimedToday || hasPlayedQuiz) {
+      // Find the most recent non-honor goal claim date
+      let lastNonHonorClaimDate = null;
+      if (lastClaimedRewards && Object.keys(lastClaimedRewards).length > 0) {
+        const nonHonorClaims = Object.entries(lastClaimedRewards)
+          .filter(([goalId]) => !honorGoalIds.includes(goalId))
+          .map(([, date]) => new Date(date).toDateString());
+        
+        if (nonHonorClaims.length > 0) {
+          lastNonHonorClaimDate = nonHonorClaims.sort().reverse()[0];
+        }
+      }
+      
+      const lastActivityDate = lastNonHonorClaimDate || lastPlayedDate;
+      
+      if (nonHonorClaimedToday || hasPlayedQuiz) {
         let newStreak = 1;
         
         if (lastActivityDate) {
@@ -282,7 +329,7 @@ const HomeScreen: React.FC = () => {
         
         setDailyStreak(newStreak);
         
-        console.log(`🔥 Daily streak updated: ${newStreak} days (hasClaimedToday: ${hasClaimedToday}, hasPlayedQuiz: ${hasPlayedQuiz})`);
+        console.log(`🔥 Daily streak updated: ${newStreak} days (nonHonorClaimedToday: ${nonHonorClaimedToday}, hasPlayedQuiz: ${hasPlayedQuiz})`);
       }
     } catch (error) {
       console.error('Error updating daily streak:', error);
@@ -377,17 +424,29 @@ const HomeScreen: React.FC = () => {
     const checkTodayCompletion = async () => {
       const todayString = new Date().toDateString();
       
-      // Check claimed goals
+      // Check claimed goals (excluding honor goals)
       const goalsData = await AsyncStorage.getItem('@BrainBites:liveGameStore:claimedRewards');
       const claimedRewards = goalsData ? JSON.parse(goalsData) : {};
-      const hasClaimedToday = Object.values(claimedRewards).some((date: any) => 
-        new Date(date).toDateString() === todayString
-      );
+      
+      // Get current goals to check which ones are honor-based
+      const currentGoalsData = await AsyncStorage.getItem('@BrainBites:dailyGoals');
+      const currentGoals = currentGoalsData ? JSON.parse(currentGoalsData) : [];
+      
+      // Filter out honor-based goals
+      const honorGoalIds = currentGoals
+        .filter((goal: any) => goal.honorBased)
+        .map((goal: any) => goal.id);
+      
+      const hasNonHonorClaimToday = Object.entries(claimedRewards).some(([goalId, date]: [string, any]) => {
+        const isHonorGoal = honorGoalIds.includes(goalId);
+        const isToday = new Date(date).toDateString() === todayString;
+        return !isHonorGoal && isToday;
+      });
       
       // Check quiz play
       const hasPlayedToday = lastPlayedDate === todayString;
       
-      return hasClaimedToday || hasPlayedToday;
+      return hasNonHonorClaimToday || hasPlayedToday;
     };
     
     const [hasCompletedToday, setHasCompletedToday] = useState(false);
