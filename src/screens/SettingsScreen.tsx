@@ -118,6 +118,14 @@ const SettingsScreen: React.FC = () => {
   }) => {
     try {
       await AsyncStorage.setItem('@BrainBites:audioSettings', JSON.stringify(settings));
+      
+      // Apply settings to the service
+      SoundService.setMasterVolume(settings.masterVolume);
+      SoundService.setMusicVolume(settings.musicVolume);
+      SoundService.setEffectsVolume(settings.effectsVolume);
+      SoundService.setDuckingEnabled(settings.duckingEnabled);
+      
+      console.log('✅ Audio settings saved and applied');
     } catch (error) {
       console.error('Failed to save audio settings:', error);
     }

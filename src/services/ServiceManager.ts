@@ -196,7 +196,7 @@ interface ServiceStatus {
   
     private async initializeSoundService(): Promise<boolean> {
       try {
-        const SoundService = require('./SoundService').default;
+        const SoundService = require('./EnhancedSoundService').default;
         if (SoundService && typeof SoundService.initialize === 'function') {
           await SoundService.initialize();
           return true;
@@ -210,7 +210,7 @@ interface ServiceStatus {
   
     private checkSoundServiceAvailability(): boolean {
       try {
-        const SoundService = require('./SoundService').default;
+        const SoundService = require('./EnhancedSoundService').default;
         return !!(SoundService && 
                  typeof SoundService.playButtonPress === 'function' &&
                  typeof SoundService.playCorrect === 'function' &&
