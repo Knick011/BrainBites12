@@ -17,7 +17,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../types';
-import SoundService from '../services/SoundService';
+import SoundService from '../services/EnhancedSoundService';
 import EnhancedMascotDisplay from '../components/Mascot/EnhancedMascotDisplay';
 import theme from '../styles/theme';
 
@@ -25,50 +25,105 @@ const { width } = Dimensions.get('window');
 
 type NavigationProp = StackNavigationProp<RootStackParamList, 'Welcome'>;
 
+// Icon mappings for each slide's bullet points
+const slideIcons = {
+  welcome: ['check-circle-outline', 'lightbulb-outline', 'clock-outline', 'chart-line'],
+  mascot: ['home', 'comment-text-outline', 'chart-box-outline', 'hand-wave'],
+  quiz: ['view-grid-outline', 'trophy-outline', 'book-open-variant', 'trending-up'],
+  screenTime: ['check', 'bell-outline', 'heart-outline', 'eye-outline'],
+  overtime: ['clock-alert-outline', 'minus-circle-outline', 'alert-outline', 'brain'],
+  goals: ['target', 'gift-outline', 'star-outline', 'fire'],
+  ready: ['rocket-launch-outline', 'school-outline', 'timer-sand', 'account-heart-outline']
+};
+
 const pages = [
   {
     title: "Welcome to BrainBites!",
-    text: "• Challenge your mind with fun quizzes\n• Learn something new every day\n• Build better screen time habits\n• Track your progress and grow",
+    bullets: [
+      "Challenge your mind with fun quizzes",
+      "Learn something new every day",
+      "Build better screen time habits",
+      "Track your progress and grow"
+    ],
     icon: "brain",
     gradient: ['#FF9F1C', '#FFD699'],
+    bulletIcons: slideIcons.welcome
   },
   {
     title: "Meet CaBBy!",
-    text: "Your friendly quiz companion\n\n• Lives in the corner during quizzes\n• Tap for hints and explanations\n• Tracks your progress\n• Always ready to help",
+    subtitle: "Your friendly quiz companion",
+    bullets: [
+      "Lives in the corner during quizzes",
+      "Tap for hints and explanations",
+      "Tracks your progress",
+      "Always ready to help"
+    ],
     icon: "account-heart",
     gradient: ['#FF6B6B', '#FFB8B8'],
     isMascotSlide: true,
+    bulletIcons: slideIcons.mascot
   },
   {
     title: "Quiz & Learn",
-    text: "• Multiple categories to explore\n• Earn points with correct answers\n• Learn from detailed explanations\n• Track your knowledge growth",
+    bullets: [
+      "Multiple categories to explore",
+      "Earn points with correct answers",
+      "Learn from detailed explanations",
+      "Track your knowledge growth"
+    ],
     icon: "head-question",
     gradient: ['#FFA726', '#FFCC80'],
+    bulletIcons: slideIcons.quiz
   },
   {
     title: "Earn Screen Time",
-    text: "• Correct answers = Screen time\n• Persistent notification tracking\n• Build healthier digital habits\n• Stay aware of your usage",
+    bullets: [
+      "Correct answers = Screen time",
+      "Persistent notification tracking",
+      "Build healthier digital habits",
+      "Stay aware of your usage"
+    ],
     icon: "timer",
     gradient: ['#4ECDC4', '#A8E6CF'],
+    bulletIcons: slideIcons.screenTime
   },
   {
     title: "Manage Overtime",
-    text: "• Time runs out? Overtime begins\n• Extra usage = Negative scores\n• Affects overall performance\n• Stay mindful, use time wisely",
+    bullets: [
+      "Time runs out? Overtime begins",
+      "Extra usage = Negative scores",
+      "Affects overall performance",
+      "Stay mindful, use time wisely"
+    ],
     icon: "warning",
     gradient: ['#FF6B6B', '#FFB8B8'],
+    bulletIcons: slideIcons.overtime
   },
   {
     title: "Daily Goals",
-    text: "• Complete goals for big rewards\n• Limited but highly rewarding\n• Honor-based = Free time\n• Keep your daily streak alive",
+    bullets: [
+      "Complete goals for big rewards",
+      "Limited but highly rewarding",
+      "Honor-based = Free time",
+      "Keep your daily streak alive"
+    ],
     icon: "target",
     gradient: ['#A8E6CF', '#7FCDCD'],
+    bulletIcons: slideIcons.goals
   },
   {
     title: "Ready to Begin?",
-    text: "Start your journey to:\n\n• Smarter learning\n• Better screen habits\n• Daily growth\n\nCaBBy is here to help!",
+    subtitle: "Start your journey to:",
+    bullets: [
+      "Smarter learning",
+      "Better screen habits",
+      "Daily growth",
+      "CaBBy is here to help!"
+    ],
     icon: "rocket-launch",
     gradient: ['#A8E6CF', '#7FCDCD'],
-    isLast: true
+    isLast: true,
+    bulletIcons: slideIcons.ready
   }
 ];
 
@@ -225,7 +280,25 @@ const WelcomeScreen: React.FC = () => {
           </Animated.View>
           
           <Text style={styles.title}>{page.title}</Text>
-          <Text style={styles.text}>{page.text}</Text>
+          
+          {page.subtitle && (
+            <Text style={styles.subtitle}>{page.subtitle}</Text>
+          )}
+          
+          <View style={styles.bulletsContainer}>
+            {page.bullets.map((bullet, index) => (
+              <View key={index} style={styles.bulletItem}>
+                <View style={styles.bulletIcon}>
+                  <Icon 
+                    name={page.bulletIcons[index]} 
+                    size={20} 
+                    color="white" 
+                  />
+                </View>
+                <Text style={styles.bulletText}>{bullet}</Text>
+              </View>
+            ))}
+          </View>
         </View>
         
         <View style={styles.progressContainer}>
@@ -332,10 +405,34 @@ const styles = StyleSheet.create({
     color: 'white',
     fontFamily: Platform.OS === 'ios' ? 'Avenir-Black' : 'sans-serif-black',
   },
-  text: {
-    fontSize: 16,
+  subtitle: {
+    fontSize: 20,
+    marginBottom: 24,
     textAlign: 'center',
-    color: 'rgba(255, 255, 255, 0.9)',
+    color: 'white',
+    fontFamily: Platform.OS === 'ios' ? 'Avenir-Medium' : 'sans-serif-medium',
+    opacity: 0.95,
+  },
+  bulletsContainer: {
+    width: '100%',
+    maxWidth: 380,
+  },
+  bulletItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  bulletIcon: {
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  bulletText: {
+    flex: 1,
+    fontSize: 18,
+    color: 'white',
     lineHeight: 24,
     fontFamily: Platform.OS === 'ios' ? 'Avenir-Medium' : 'sans-serif',
   },

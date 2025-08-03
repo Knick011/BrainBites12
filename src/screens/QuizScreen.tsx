@@ -22,7 +22,7 @@ import {
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import QuestionService from '../services/QuestionService';
-import SoundService from '../services/SoundService';
+import SoundService from '../services/EnhancedSoundService';
 import EnhancedScoreService from '../services/EnhancedScoreService';
 import TimerIntegrationService from '../services/TimerIntegrationService';
 import EnhancedMascotDisplay from '../components/Mascot/EnhancedMascotDisplay';

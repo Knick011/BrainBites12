@@ -15,8 +15,9 @@ import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import theme from '../styles/theme';
-import SoundService from '../services/SoundService';
+import SoundService from '../services/EnhancedSoundService';
 import { NotificationService } from '../services/NotificationService';
+import AudioSettings from '../components/settings/AudioSettings';
 
 interface NotificationSettings {
   morningReminder: boolean;
@@ -44,6 +45,7 @@ const SettingsScreen: React.FC = () => {
   });
   
   const [showTimePicker, setShowTimePicker] = useState(false);
+  const [showAudioSettings, setShowAudioSettings] = useState(false);
   
   // App settings
   const [hapticFeedback, setHapticFeedback] = useState(true);
@@ -63,6 +65,16 @@ const SettingsScreen: React.FC = () => {
       if (savedSoundEnabled !== null) setSoundEnabled(savedSoundEnabled === 'true');
       if (savedMusicVolume !== null) setMusicVolume(parseFloat(savedMusicVolume));
       if (savedEffectsVolume !== null) setEffectsVolume(parseFloat(savedEffectsVolume));
+      
+      // Load enhanced audio settings
+      const savedAudioSettings = await AsyncStorage.getItem('@BrainBites:audioSettings');
+      if (savedAudioSettings) {
+        const audioSettings = JSON.parse(savedAudioSettings);
+        SoundService.setMasterVolume(audioSettings.masterVolume || 1.0);
+        SoundService.setMusicVolume(audioSettings.musicVolume || 0.7);
+        SoundService.setEffectsVolume(audioSettings.effectsVolume || 0.9);
+        SoundService.setDuckingEnabled(audioSettings.duckingEnabled !== false);
+      }
       
       // Load notification settings
       const savedNotifications = await AsyncStorage.getItem('@BrainBites:notificationSettings');
@@ -95,6 +107,19 @@ const SettingsScreen: React.FC = () => {
     } else {
       SoundService.setMusicEnabled(false);
       SoundService.setSoundEffectsEnabled(false);
+    }
+  };
+  
+  const saveAudioSettings = async (settings: {
+    masterVolume: number;
+    musicVolume: number;
+    effectsVolume: number;
+    duckingEnabled: boolean;
+  }) => {
+    try {
+      await AsyncStorage.setItem('@BrainBites:audioSettings', JSON.stringify(settings));
+    } catch (error) {
+      console.error('Failed to save audio settings:', error);
     }
   };
   
@@ -165,6 +190,20 @@ const SettingsScreen: React.FC = () => {
               thumbColor={soundEnabled ? theme.colors.primary : '#f4f3f4'}
             />
           )}
+          
+          <TouchableOpacity 
+            style={styles.settingItem} 
+            onPress={() => setShowAudioSettings(true)}
+          >
+            <View style={styles.settingLeft}>
+              <Icon name="tune" size={24} color={theme.colors.primary} style={styles.settingIcon} />
+              <View style={styles.settingTextContainer}>
+                <Text style={styles.settingTitle}>Advanced Audio Settings</Text>
+                <Text style={styles.settingSubtitle}>Volume controls, ducking, and more</Text>
+              </View>
+            </View>
+            <Icon name="chevron-right" size={20} color="#999" />
+          </TouchableOpacity>
         </View>
         
         {/* Notification Settings */}
@@ -290,6 +329,13 @@ const SettingsScreen: React.FC = () => {
           is24Hour={false}
           display="default"
           onChange={handleTimeChange}
+        />
+      )}
+      
+      {showAudioSettings && (
+        <AudioSettings 
+          onClose={() => setShowAudioSettings(false)} 
+          onSave={saveAudioSettings}
         />
       )}
     </SafeAreaView>

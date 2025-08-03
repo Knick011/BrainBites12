@@ -19,7 +19,7 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../types';
 import theme from '../styles/theme';
-import SoundService from '../services/SoundService';
+import SoundService from '../services/EnhancedSoundService';
 import EnhancedMascotDisplay from '../components/Mascot/EnhancedMascotDisplay';
 import DailyGoalsService, { DailyGoal } from '../services/DailyGoalsService';
 
