@@ -8,7 +8,7 @@ import {
   TextStyle,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import SoundService from '../../services/EnhancedSoundService';
+import SoundService from '../../services/SoundService';
 
 interface BubbleButtonProps {
   title: string;

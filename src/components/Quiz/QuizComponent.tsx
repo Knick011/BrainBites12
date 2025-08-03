@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
-import SoundService from '../../services/EnhancedSoundService';
+import SoundService from '@services/SoundService';
 import { TimerService } from '@services/TimerService';
 import { useUserStore } from '@store/useUserStore';
 import Mascot from '@components/Mascot/Mascot';

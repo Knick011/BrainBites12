@@ -4,7 +4,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import { useLiveGameStore, useGameEvents, GameEvent } from '../store/useLiveGameStore';
 import EnhancedScoreService from '../services/EnhancedScoreService';
 import TimerIntegrationService from '../services/TimerIntegrationService';
-import SoundService from '../services/EnhancedSoundService';
+import SoundService from '../services/SoundService';
 
 // ==================== INTEGRATION HOOK ====================
 

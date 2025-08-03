@@ -19,7 +19,7 @@ import {
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import SoundService from '../services/EnhancedSoundService';
+import SoundService from '../services/SoundService';
 import EnhancedScoreService from '../services/EnhancedScoreService';
 import theme from '../styles/theme';
 

@@ -17,7 +17,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../types';
-import SoundService from '../services/EnhancedSoundService';
+import SoundService from '../services/SoundService';
 import EnhancedMascotDisplay from '../components/Mascot/EnhancedMascotDisplay';
 import theme from '../styles/theme';
 

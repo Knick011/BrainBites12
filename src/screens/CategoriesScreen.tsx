@@ -17,7 +17,7 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../types';
 import theme from '../styles/theme';
-import SoundService from '../services/EnhancedSoundService';
+import SoundService from '../services/SoundService';
 import CategoryCard from '../components/CategoryCard';
 import PeekingMascot from '../components/Mascot/PeekingMascot';
 import { getAvailableCategories, CategoryInfo, getTotalQuestionsCount } from '../utils/categoryUtils';

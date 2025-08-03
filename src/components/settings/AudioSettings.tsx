@@ -18,15 +18,9 @@ import EnhancedSoundService from '../../services/EnhancedSoundService';
 
 interface AudioSettingsProps {
   onClose?: () => void;
-  onSave?: (settings: {
-    masterVolume: number;
-    musicVolume: number;
-    effectsVolume: number;
-    duckingEnabled: boolean;
-  }) => void;
 }
 
-const AudioSettings: React.FC<AudioSettingsProps> = ({ onClose, onSave }) => {
+const AudioSettings: React.FC<AudioSettingsProps> = ({ onClose }) => {
   const [masterVolume, setMasterVolume] = useState(1.0);
   const [musicVolume, setMusicVolume] = useState(0.7);
   const [effectsVolume, setEffectsVolume] = useState(0.9);
@@ -67,18 +61,6 @@ const AudioSettings: React.FC<AudioSettingsProps> = ({ onClose, onSave }) => {
   const handleDuckingToggle = (value: boolean) => {
     setDuckingEnabled(value);
     EnhancedSoundService.setDuckingEnabled(value);
-  };
-  
-  const handleSave = () => {
-    if (onSave) {
-      onSave({
-        masterVolume,
-        musicVolume,
-        effectsVolume,
-        duckingEnabled,
-      });
-    }
-    onClose?.();
   };
   
   const testSound = async () => {
@@ -227,14 +209,6 @@ const AudioSettings: React.FC<AudioSettingsProps> = ({ onClose, onSave }) => {
             <Icon name="play-circle" size={24} color="#FFFFFF" />
             <Text style={styles.testButtonText}>Test Sound</Text>
           </Animated.View>
-        </TouchableOpacity>
-        
-        {/* Save Button */}
-        <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-          <View style={styles.saveButtonInner}>
-            <Icon name="content-save" size={24} color="#FFFFFF" />
-            <Text style={styles.saveButtonText}>Save Settings</Text>
-          </View>
         </TouchableOpacity>
         
         {/* Visual EQ Animation */}
@@ -386,25 +360,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   testButtonText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginLeft: 8,
-  },
-  saveButton: {
-    backgroundColor: '#FF6B6B',
-    borderRadius: 12,
-    overflow: 'hidden',
-    marginBottom: 30,
-  },
-  saveButtonInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-  },
-  saveButtonText: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#FFFFFF',

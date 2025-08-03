@@ -8,7 +8,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { StatusBar, Platform, Alert, AppState, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import SoundService from './src/services/EnhancedSoundService';
+import SoundService from './src/services/SoundService';
 import QuestionService from './src/services/QuestionService';
 import ErrorBoundary from './src/components/common/ErrorBoundary';
 import LoadingScreen from './src/components/common/LoadingScreen';

@@ -300,11 +300,6 @@ class EnhancedSoundService {
     this.queueSound('buttonPress', 1);
   }
   
-  // Backward compatibility method
-  async playButtonClick(): Promise<void> {
-    return this.playButtonPress();
-  }
-  
   async playCorrect(): Promise<void> {
     if (!this.audioInitialized) return;
     this.queueSound('correct', 2);
@@ -443,17 +438,6 @@ class EnhancedSoundService {
   
   setDuckingEnabled(enabled: boolean): void {
     this.audioConfig.duckingEnabled = enabled;
-  }
-  
-  // Backward compatibility methods
-  setSoundEffectsEnabled(enabled: boolean): void {
-    // Store in audioConfig for compatibility
-    this.audioConfig.effectsVolume = enabled ? this.audioConfig.effectsVolume : 0;
-  }
-  
-  setSoundEnabled(enabled: boolean): void {
-    // Alias for setSoundEffectsEnabled
-    this.setSoundEffectsEnabled(enabled);
   }
   
   // Cleanup
